@@ -1,4 +1,7 @@
 import type { BTreeMutation } from '../btree/types';
+import type { LockManager } from '../locks/lockManager';
+import { computeRequiredLocks, type StatementLockKind } from '../locks/lockRequirements';
+import type { LockMode, LockRequest } from '../locks/types';
 import type { RedoLog } from '../logs/redoLog';
 import type { UndoLog, UndoLogRecord } from '../logs/undoLog';
 import { compareKeys, formatKey, type ClusteredRecord, type KeyValue, type Row } from '../schema/record';
@@ -13,11 +16,12 @@ import type {
   WhereClause,
 } from '../sql/ast';
 import type { ParsedStatement } from '../sql/parser';
-import type { IsolationLevel } from '../transaction/isolationLevel';
+import { behaviorOf, type IsolationLevel } from '../transaction/isolationLevel';
 import type { Transaction } from '../transaction/transaction';
 import type { TableStorage, IndexOperation } from '../storage/tableStorage';
 import { describeMutation, describeRow } from './describe';
 import type { StepEvent } from './events';
+import { describeLockTarget } from '../locks/lockManager';
 import { chooseAccessPath, matchesWhere, type AccessPath } from './predicate';
 
 export class ExecutionError extends Error {}
@@ -26,6 +30,7 @@ export interface ExecutionContext {
   readonly catalog: Catalog;
   readonly redoLog: RedoLog;
   readonly undoLog: UndoLog;
+  readonly lockManager: LockManager;
   isolationLevel: IsolationLevel;
   transaction: Transaction | null;
   storageOf(tableName: string): TableStorage;
@@ -38,6 +43,14 @@ export interface ExecutionContext {
 interface MatchedRow {
   key: KeyValue;
   record: ClusteredRecord;
+}
+
+interface ScanResult {
+  matched: MatchedRow[];
+  access: AccessPath;
+  /** Every record the scan had to look at, which is what next-key locking is based on. */
+  scannedKeys: KeyValue[];
+  reachedEnd: boolean;
 }
 
 export function executeStatement(ctx: ExecutionContext, parsed: ParsedStatement): void {
@@ -152,6 +165,7 @@ function commitTransaction(ctx: ExecutionContext, tx: Transaction): void {
     });
   }
 
+  releaseLocks(ctx, tx, 'COMMIT');
   ctx.finishTransaction('committed');
   ctx.emit({
     type: 'transaction-commit',
@@ -177,6 +191,7 @@ export function rollbackTransaction(ctx: ExecutionContext, tx: Transaction): voi
   }
   ctx.undoLog.discard(tx.id);
 
+  releaseLocks(ctx, tx, 'ROLLBACK');
   ctx.finishTransaction('rolled-back');
   ctx.emit({
     type: 'transaction-rollback',
@@ -359,6 +374,13 @@ function executeInsert(
       '삽입 위치 탐색',
     );
 
+    acquireLocks(ctx, tx, storage, 'insert', 'X', {
+      access: { kind: 'pk-point', indexId: 'PRIMARY', key: primaryKey, indexConditions: [], description: '삽입 위치' },
+      matchedKeys: [primaryKey],
+      scannedKeys: [],
+      reachedEnd: false,
+    });
+
     applyOperations(ctx, tx, storage.insertRow(row, { trxId: tx.id, rollPtr: undo.undoNo }));
   }
 
@@ -372,7 +394,14 @@ function executeUpdate(
 ): number {
   const storage = ctx.storageOf(statement.table);
   const table = storage.table;
-  const matched = findRows(ctx, storage, statement.where);
+  const scan = findRows(ctx, storage, statement.where);
+  const matched = scan.matched;
+  acquireLocks(ctx, tx, storage, 'update', 'X', {
+    access: scan.access,
+    matchedKeys: matched.map((row) => row.key),
+    scannedKeys: scan.scannedKeys,
+    reachedEnd: scan.reachedEnd,
+  });
 
   for (const { key, record } of matched) {
     const newRow: Row = { ...record.row };
@@ -425,7 +454,14 @@ function executeDelete(
   statement: DeleteStatement,
 ): number {
   const storage = ctx.storageOf(statement.table);
-  const matched = findRows(ctx, storage, statement.where);
+  const scan = findRows(ctx, storage, statement.where);
+  const matched = scan.matched;
+  acquireLocks(ctx, tx, storage, 'delete', 'X', {
+    access: scan.access,
+    matchedKeys: matched.map((row) => row.key),
+    scannedKeys: scan.scannedKeys,
+    reachedEnd: scan.reachedEnd,
+  });
 
   for (const { key, record } of matched) {
     const undo = appendUndo(ctx, tx, {
@@ -450,11 +486,44 @@ function executeDelete(
 
 function executeSelect(
   ctx: ExecutionContext,
-  _tx: Transaction,
+  tx: Transaction,
   statement: SelectStatement,
 ): number {
   const storage = ctx.storageOf(statement.table);
-  const matched = findRows(ctx, storage, statement.where);
+  const scan = findRows(ctx, storage, statement.where);
+  const matched = scan.matched;
+
+  const behavior = behaviorOf(tx.isolationLevel);
+  const locking =
+    statement.lockMode !== 'none' || behavior.plainSelectLocks
+      ? ({
+          kind: 'locking-read' as StatementLockKind,
+          mode: (statement.lockMode === 'exclusive' ? 'X' : 'S') as LockMode,
+        })
+      : null;
+
+  if (locking) {
+    if (statement.lockMode === 'none') {
+      ctx.emit({
+        type: 'note',
+        explanation:
+          'SERIALIZABLE 에서는 평범한 SELECT 도 LOCK IN SHARE MODE 처럼 동작한다. MVCC 로 락 없이 읽는 대신 S 락을 잡는다.',
+      });
+    }
+    acquireLocks(ctx, tx, storage, locking.kind, locking.mode, {
+      access: scan.access,
+      matchedKeys: matched.map((row) => row.key),
+      scannedKeys: scan.scannedKeys,
+      reachedEnd: scan.reachedEnd,
+    });
+  } else {
+    ctx.emit({
+      type: 'note',
+      explanation:
+        '일반 SELECT 는 락을 잡지 않는다. undo 로 만든 이전 버전을 읽는 consistent read 라서 쓰기와 서로 막지 않는다.',
+    });
+  }
+
   const rows = matched.map(({ record }) =>
     statement.columns === '*'
       ? { ...record.row }
@@ -473,7 +542,7 @@ function findRows(
   ctx: ExecutionContext,
   storage: TableStorage,
   where: WhereClause | null,
-): MatchedRow[] {
+): ScanResult {
   const access = chooseAccessPath(storage.table, where);
 
   if (access.kind === 'pk-point' && access.key) {
@@ -486,18 +555,85 @@ function findRows(
       `${access.description}. 루트에서 리프까지 ${result.path.length}개 페이지만 읽으면 된다.`,
       access.description,
     );
-    if (!result.found || !result.value || result.value.deleteMark) return [];
-    return matchesWhere(result.value.row, where)
-      ? [{ key: access.key, record: result.value }]
-      : [];
+    const hit =
+      result.found && result.value && !result.value.deleteMark && matchesWhere(result.value.row, where)
+        ? [{ key: access.key, record: result.value }]
+        : [];
+    return {
+      matched: hit,
+      access,
+      scannedKeys: hit.map((row) => row.key),
+      reachedEnd: false,
+    };
   }
 
   emitScanTraverse(ctx, storage, access);
 
-  return storage
-    .scan()
-    .filter(({ record }) => !record.deleteMark && matchesWhere(record.row, where))
-    .map(({ key, record }) => ({ key, record }));
+  const live = storage.scan().filter(({ record }) => !record.deleteMark);
+  return {
+    matched: live
+      .filter(({ record }) => matchesWhere(record.row, where))
+      .map(({ key, record }) => ({ key, record })),
+    access,
+    // A range or full scan reads every live record it walks past, matched or not.
+    scannedKeys: live.map(({ key }) => key),
+    reachedEnd: true,
+  };
+}
+
+/** Key of the first record after `key`, or null when nothing follows it (the supremum gap). */
+function keyAfter(storage: TableStorage, key: KeyValue): KeyValue | null {
+  for (const entry of storage.scan()) {
+    if (compareKeys(entry.key, key) > 0) return entry.key;
+  }
+  return null;
+}
+
+function acquireLocks(
+  ctx: ExecutionContext,
+  tx: Transaction,
+  storage: TableStorage,
+  kind: StatementLockKind,
+  rowMode: LockMode,
+  scan: Pick<ScanResult, 'access' | 'scannedKeys' | 'reachedEnd'> & { matchedKeys: KeyValue[] },
+): void {
+  const requests = computeRequiredLocks({
+    table: storage.table,
+    kind,
+    rowMode,
+    access: scan.access,
+    isolationLevel: tx.isolationLevel,
+    matchedKeys: scan.matchedKeys,
+    scannedKeys: scan.scannedKeys,
+    nextKeyAfter: (key) => keyAfter(storage, key),
+    reachedEnd: scan.reachedEnd,
+  });
+
+  grantLocks(ctx, tx, requests);
+}
+
+function grantLocks(ctx: ExecutionContext, tx: Transaction, requests: LockRequest[]): void {
+  for (const request of requests) {
+    const { lock, alreadyHeld } = ctx.lockManager.acquire(tx.id, request);
+    if (alreadyHeld) continue;
+    ctx.emit({
+      type: 'lock-acquire',
+      lock,
+      explanation: `${lock.mode} 락 획득 — ${describeLockTarget(lock.target)}. ${lock.reason}`,
+    });
+  }
+}
+
+function releaseLocks(ctx: ExecutionContext, tx: Transaction, cause: 'COMMIT' | 'ROLLBACK'): void {
+  const released = ctx.lockManager.releaseAll(tx.id);
+  if (released.length === 0) return;
+  ctx.emit({
+    type: 'lock-release',
+    txId: tx.id,
+    locks: released,
+    cause,
+    explanation: `${cause} 로 트랜잭션 ${tx.id} 이 잡고 있던 락 ${released.length}개를 한꺼번에 해제한다. InnoDB 는 2PL 을 따르므로 문장이 끝나도 중간에 풀지 않고 트랜잭션 종료 시점에 푼다.`,
+  });
 }
 
 function emitScanTraverse(

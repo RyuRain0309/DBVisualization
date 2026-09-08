@@ -3,6 +3,7 @@ import { CLUSTERED_INDEX_ID } from '../btree/clusteredIndex';
 import type { TreeSnapshot } from '../btree/types';
 import { executeStatement, rollbackTransaction, type ExecutionContext } from '../executor/executor';
 import type { EngineSnapshot, ExecutionStep, IndexSnapshot, StepEvent } from '../executor/events';
+import { LockManager } from '../locks/lockManager';
 import { RedoLog } from '../logs/redoLog';
 import { UndoLog } from '../logs/undoLog';
 import { Catalog } from '../schema/catalog';
@@ -28,6 +29,7 @@ export class Session implements ExecutionContext {
   readonly catalog = new Catalog();
   readonly redoLog = new RedoLog();
   readonly undoLog = new UndoLog();
+  readonly lockManager = new LockManager();
   readonly pageCapacity: number;
   isolationLevel: IsolationLevel = 'REPEATABLE READ';
   transaction: Transaction | null = null;
@@ -112,6 +114,7 @@ export class Session implements ExecutionContext {
       pageCapacity: this.pageCapacity,
       redo: this.redoLog.state(),
       undo: this.undoLog.all(),
+      locks: this.lockManager.held(),
     };
   }
 

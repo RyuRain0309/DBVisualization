@@ -1,4 +1,5 @@
 import type { BTreeMutation, PageId, TreeSnapshot } from '../btree/types';
+import type { Lock } from '../locks/types';
 import type { RedoLogRecord, RedoLogState } from '../logs/redoLog';
 import type { UndoLogRecord } from '../logs/undoLog';
 import type { KeyValue, Row } from '../schema/record';
@@ -22,6 +23,8 @@ export type StepEventType =
   | 'undo-apply'
   | 'undo-retain'
   | 'purge'
+  | 'lock-acquire'
+  | 'lock-release'
   | 'rows-returned'
   | 'note';
 
@@ -52,6 +55,8 @@ export type StepEvent =
   | (BaseEvent & { type: 'undo-apply'; record: UndoLogRecord })
   | (BaseEvent & { type: 'undo-retain'; records: UndoLogRecord[] })
   | (BaseEvent & { type: 'purge'; primaryKey: KeyValue; tableName: string })
+  | (BaseEvent & { type: 'lock-acquire'; lock: Lock })
+  | (BaseEvent & { type: 'lock-release'; txId: number; locks: Lock[]; cause: 'COMMIT' | 'ROLLBACK' })
   | (BaseEvent & { type: 'rows-returned'; rows: Row[] })
   | (BaseEvent & { type: 'note'; detail?: string });
 
@@ -83,6 +88,7 @@ export interface EngineSnapshot {
   pageCapacity: number;
   redo: RedoLogState;
   undo: UndoLogRecord[];
+  locks: Lock[];
 }
 
 /** One StepEvent plus the state of the whole engine right after it happened. */
