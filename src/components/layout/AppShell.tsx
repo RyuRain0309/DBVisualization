@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import { BTreeCanvas } from '../btree-view/BTreeCanvas';
+import { IsolationEffectExplainer } from '../isolation/IsolationEffectExplainer';
+import { IsolationLevelSelector } from '../isolation/IsolationLevelSelector';
 import { LockTable } from '../lock-panel/LockTable';
 import { RedoLogPanel } from '../log-panel/RedoLogPanel';
 import { UndoLogPanel } from '../log-panel/UndoLogPanel';
@@ -57,12 +59,15 @@ export function AppShell() {
             </span>
           </label>
 
+          <IsolationLevelSelector
+            level={snapshot.isolationLevel}
+            transactionOpen={transaction !== null}
+          />
+
           <span className={`badge ${transaction ? 'badge--active' : ''}`}>
             {transaction
-              ? `TX ${transaction.id} 진행 중 · ${transaction.isolationLevel}${
-                  transaction.implicit ? ' (autocommit)' : ''
-                }`
-              : `트랜잭션 없음 · ${snapshot.isolationLevel}`}
+              ? `TX ${transaction.id} 진행 중${transaction.implicit ? ' (autocommit)' : ''}`
+              : '트랜잭션 없음'}
           </span>
 
           <button type="button" className="button" onClick={reset}>
@@ -102,6 +107,10 @@ export function AppShell() {
         </div>
 
         <div className="layout__right">
+          <IsolationEffectExplainer
+            level={snapshot.isolationLevel}
+            readView={snapshot.readView}
+          />
           <LockTable locks={snapshot.locks} />
           <RedoLogPanel redo={snapshot.redo} />
           <UndoLogPanel undo={snapshot.undo} />

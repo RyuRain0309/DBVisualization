@@ -740,3 +740,55 @@ body {
   fill: rgba(90, 169, 255, 0.35);
   stroke: var(--accent);
 }
+
+.facts {
+  margin: 0 0 8px;
+  display: grid;
+  gap: 3px;
+}
+
+.facts > div {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  gap: 8px;
+  font-size: 11.5px;
+}
+
+.facts dt {
+  color: var(--text-dim);
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.read-view {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: grid;
+  gap: 3px;
+}
+
+.read-view__label {
+  color: var(--text-dim);
+  font-size: 10.5px;
+}
+
+.read-view__value {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.feed__tag--read-view-create,
+.feed__tag--visibility-check {
+  color: #b48bff;
+  border-color: #b48bff;
+}
+
+.feed__tag--lock-acquire,
+.feed__tag--lock-release {
+  color: var(--danger);
+  border-color: var(--danger);
+}
