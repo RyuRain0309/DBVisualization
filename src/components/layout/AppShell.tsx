@@ -1,5 +1,8 @@
 import { useMemo } from 'react';
 import { BTreeCanvas } from '../btree-view/BTreeCanvas';
+import { LockTable } from '../lock-panel/LockTable';
+import { RedoLogPanel } from '../log-panel/RedoLogPanel';
+import { UndoLogPanel } from '../log-panel/UndoLogPanel';
 import { highlightOf } from '../btree-view/highlight';
 import { ExplanationFeed } from '../explanation/ExplanationFeed';
 import { SqlInput } from '../sql-console/SqlInput';
@@ -86,11 +89,22 @@ export function AppShell() {
               <section key={table.table.name} className="table-view">
                 <h2 className="table-view__title">{table.table.name}</h2>
                 {table.indexes.map((index) => (
-                  <BTreeCanvas key={index.indexId} index={index} highlight={highlight} />
+                  <BTreeCanvas
+                    key={index.indexId}
+                    index={index}
+                    highlight={highlight}
+                    locks={snapshot.locks}
+                  />
                 ))}
               </section>
             ))
           )}
+        </div>
+
+        <div className="layout__right">
+          <LockTable locks={snapshot.locks} />
+          <RedoLogPanel redo={snapshot.redo} />
+          <UndoLogPanel undo={snapshot.undo} />
         </div>
       </main>
     </div>

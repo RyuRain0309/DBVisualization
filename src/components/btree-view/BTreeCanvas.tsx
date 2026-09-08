@@ -1,4 +1,3 @@
-import { AnimatePresence } from 'framer-motion';
 import { useMemo } from 'react';
 import type { IndexSnapshot } from '../../engine/executor/events';
 import { layoutTree } from './layout';
@@ -6,15 +5,19 @@ import { PageNode } from './PageNode';
 import { LeafLink, TreeEdge } from './TreeEdge';
 import { indexHint, indexTitle, toPageBoxes } from './treeModel';
 import type { Highlight } from './highlight';
+import type { Lock } from '../../engine/locks/types';
+import { lockMarksFor } from '../lock-panel/lockMarks';
 
 const PADDING = 16;
 
 interface Props {
   index: IndexSnapshot;
   highlight: Highlight;
+  locks: Lock[];
 }
 
-export function BTreeCanvas({ index, highlight }: Props) {
+export function BTreeCanvas({ index, highlight, locks }: Props) {
+  const marks = useMemo(() => lockMarksFor(index.indexId, locks), [index.indexId, locks]);
   const layout = useMemo(() => {
     const boxes = toPageBoxes(index.tree);
     return layoutTree(boxes, index.tree.rootId);
@@ -51,11 +54,12 @@ export function BTreeCanvas({ index, highlight }: Props) {
                 />
               ))}
             </g>
-            <AnimatePresence>
+            <g>
               {layout.pages.map((page) => (
                 <PageNode
                   key={page.box.id}
                   page={page}
+                  marks={marks}
                   highlight={
                     !active
                       ? 'none'
@@ -67,7 +71,7 @@ export function BTreeCanvas({ index, highlight }: Props) {
                   }
                 />
               ))}
-            </AnimatePresence>
+            </g>
           </svg>
         </div>
       )}
