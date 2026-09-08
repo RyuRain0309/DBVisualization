@@ -8,6 +8,7 @@ import { UndoLogPanel } from '../log-panel/UndoLogPanel';
 import { highlightOf } from '../btree-view/highlight';
 import { ExplanationFeed } from '../explanation/ExplanationFeed';
 import { SqlInput } from '../sql-console/SqlInput';
+import { ResultTable } from '../sql-console/ResultTable';
 import { StepControls } from '../sql-console/StepControls';
 import { useEngineStore } from '../../store/engineStore';
 
@@ -80,6 +81,7 @@ export function AppShell() {
         <div className="layout__left">
           <SqlInput />
           <StepControls />
+          <ResultTable />
           <ExplanationFeed />
         </div>
 

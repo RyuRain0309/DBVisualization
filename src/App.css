@@ -417,70 +417,16 @@ body {
   stroke-width: 1;
 }
 
-.page--internal .page {
-  transition: transform 320ms cubic-bezier(0.22, 0.8, 0.28, 1);
-  animation: page-appear 220ms ease-out;
-}
-
-@keyframes page-appear {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.lock-badge-group {
-  animation: page-appear 180ms ease-out;
-}
-
-.page__frame {
+.page--internal .page__frame {
   fill: var(--internal);
 }
 
-.page--highlight-traverse .page {
-  transition: transform 320ms cubic-bezier(0.22, 0.8, 0.28, 1);
-  animation: page-appear 220ms ease-out;
-}
-
-@keyframes page-appear {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.lock-badge-group {
-  animation: page-appear 180ms ease-out;
-}
-
-.page__frame {
+.page--highlight-traverse .page__frame {
   stroke: var(--accent);
   stroke-width: 2;
 }
 
-.page--highlight-mutate .page {
-  transition: transform 320ms cubic-bezier(0.22, 0.8, 0.28, 1);
-  animation: page-appear 220ms ease-out;
-}
-
-@keyframes page-appear {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.lock-badge-group {
-  animation: page-appear 180ms ease-out;
-}
-
-.page__frame {
+.page--highlight-mutate .page__frame {
   stroke: var(--warn);
   stroke-width: 2;
 }
@@ -791,4 +737,59 @@ body {
 .feed__tag--lock-release {
   color: var(--danger);
   border-color: var(--danger);
+}
+
+.result {
+  padding: 8px 12px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.result__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.result__header h2 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.result__count {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-family: var(--mono);
+}
+
+.result__empty {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.result__scroll {
+  overflow-x: auto;
+  max-height: 148px;
+  overflow-y: auto;
+}
+
+.result__table {
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 11px;
+  width: 100%;
+}
+
+.result__table th,
+.result__table td {
+  border: 1px solid var(--border);
+  padding: 3px 7px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.result__table th {
+  color: var(--text-dim);
+  background: var(--bg-panel);
 }

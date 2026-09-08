@@ -12,14 +12,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "d3-hierarchy": "^3.1.2",
     "framer-motion": "^13.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
-    "@types/d3-hierarchy": "^3.1.7",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
