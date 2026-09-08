@@ -22,6 +22,8 @@ import type { TableStorage, IndexOperation } from '../storage/tableStorage';
 import { describeMutation, describeRow } from './describe';
 import type { StepEvent } from './events';
 import { describeLockTarget } from '../locks/lockManager';
+import { createReadView, describeReadView, type ReadView } from '../mvcc/readView';
+import { visibleVersionOf } from '../mvcc/versionChain';
 import { chooseAccessPath, matchesWhere, type AccessPath } from './predicate';
 
 export class ExecutionError extends Error {}
@@ -36,6 +38,11 @@ export interface ExecutionContext {
   storageOf(tableName: string): TableStorage;
   createStorage(table: TableDef): TableStorage;
   beginTransaction(implicit: boolean): Transaction;
+  /** Id the next transaction will get, i.e. the upper bound of a new read view. */
+  peekNextTransactionId(): number;
+  /** Other transactions still running when a read view is taken. */
+  activeTransactionIds(): number[];
+  statementIndex(): number;
   finishTransaction(state: 'committed' | 'rolled-back'): void;
   emit(event: StepEvent): void;
 }
@@ -524,11 +531,30 @@ function executeSelect(
     });
   }
 
-  const rows = matched.map(({ record }) =>
-    statement.columns === '*'
-      ? { ...record.row }
-      : Object.fromEntries(statement.columns.map((column) => [column, record.row[column] ?? null])),
-  );
+  const view = locking ? null : ensureReadView(ctx, tx);
+  const rows: Row[] = [];
+
+  for (const { key, record } of storage.scan()) {
+    const version = visibleVersionOf(record, view, ctx.undoLog);
+    if (version.hops > 0) {
+      ctx.emit({
+        type: 'visibility-check',
+        primaryKey: key,
+        hops: version.hops,
+        visibleTrxId: version.trxId,
+        explanation: `PK (${formatKey(key)}) 의 최신 버전은 이 read view 에 보이지 않아 undo 체인을 ${version.hops}칸 되짚어 예전 버전을 읽었다.`,
+      });
+    }
+    if (!version.row || !matchesWhere(version.row, statement.where)) continue;
+
+    rows.push(
+      statement.columns === '*'
+        ? { ...version.row }
+        : Object.fromEntries(
+            statement.columns.map((column) => [column, version.row![column] ?? null]),
+          ),
+    );
+  }
 
   ctx.emit({
     type: 'rows-returned',
@@ -536,6 +562,50 @@ function executeSelect(
     explanation: `${rows.length}개 행 반환.`,
   });
   return rows.length;
+}
+
+/**
+ * Read view lifetime is the difference people actually feel between the isolation levels:
+ * REPEATABLE READ keeps the first snapshot for the whole transaction, READ COMMITTED takes a
+ * fresh one for every statement, and READ UNCOMMITTED takes none at all.
+ */
+function ensureReadView(ctx: ExecutionContext, tx: Transaction): ReadView | null {
+  const policy = behaviorOf(tx.isolationLevel).readViewPolicy;
+  if (policy === 'none') {
+    ctx.emit({
+      type: 'note',
+      explanation:
+        'READ UNCOMMITTED 는 read view 를 만들지 않고 페이지의 최신 버전을 그대로 읽는다. 커밋되지 않은 변경도 보이는 dirty read 가 여기서 생긴다.',
+    });
+    return null;
+  }
+
+  if (policy === 'per-transaction' && tx.readView) {
+    ctx.emit({
+      type: 'note',
+      explanation: `${tx.isolationLevel} 라서 트랜잭션 첫 읽기에서 만든 read view 를 그대로 재사용한다. 같은 SELECT 를 다시 해도 결과가 바뀌지 않는 이유다.`,
+    });
+    return tx.readView;
+  }
+
+  const view = createReadView(
+    tx.id,
+    ctx.activeTransactionIds().filter((id) => id !== tx.id),
+    ctx.peekNextTransactionId(),
+    ctx.statementIndex(),
+  );
+  tx.readView = view;
+
+  ctx.emit({
+    type: 'read-view-create',
+    view,
+    policy,
+    explanation:
+      policy === 'per-statement'
+        ? `READ COMMITTED 라서 이 SELECT 를 위한 read view 를 새로 만든다 (${describeReadView(view)}). 매 문장마다 다시 만들기 때문에 같은 트랜잭션 안에서도 결과가 달라질 수 있다.`
+        : `트랜잭션의 첫 consistent read 라 read view 를 만든다 (${describeReadView(view)}). 이 스냅샷을 트랜잭션이 끝날 때까지 쓴다.`,
+  });
+  return view;
 }
 
 function findRows(

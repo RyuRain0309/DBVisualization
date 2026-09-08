@@ -18,6 +18,8 @@ const LABELS: Record<StepEvent['type'], string> = {
   'undo-apply': 'undo',
   'undo-retain': 'undo',
   purge: 'purge',
+  'read-view-create': 'MVCC',
+  'visibility-check': 'MVCC',
   'lock-acquire': '락',
   'lock-release': '락',
   'rows-returned': '결과',

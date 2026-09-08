@@ -2,6 +2,7 @@ import type { BTreeMutation, PageId, TreeSnapshot } from '../btree/types';
 import type { Lock } from '../locks/types';
 import type { RedoLogRecord, RedoLogState } from '../logs/redoLog';
 import type { UndoLogRecord } from '../logs/undoLog';
+import type { ReadView } from '../mvcc/readView';
 import type { KeyValue, Row } from '../schema/record';
 import type { TableDef } from '../schema/table';
 import type { Statement } from '../sql/ast';
@@ -25,6 +26,8 @@ export type StepEventType =
   | 'purge'
   | 'lock-acquire'
   | 'lock-release'
+  | 'read-view-create'
+  | 'visibility-check'
   | 'rows-returned'
   | 'note';
 
@@ -57,6 +60,13 @@ export type StepEvent =
   | (BaseEvent & { type: 'purge'; primaryKey: KeyValue; tableName: string })
   | (BaseEvent & { type: 'lock-acquire'; lock: Lock })
   | (BaseEvent & { type: 'lock-release'; txId: number; locks: Lock[]; cause: 'COMMIT' | 'ROLLBACK' })
+  | (BaseEvent & { type: 'read-view-create'; view: ReadView; policy: string })
+  | (BaseEvent & {
+      type: 'visibility-check';
+      primaryKey: KeyValue;
+      hops: number;
+      visibleTrxId: number | null;
+    })
   | (BaseEvent & { type: 'rows-returned'; rows: Row[] })
   | (BaseEvent & { type: 'note'; detail?: string });
 
@@ -89,6 +99,7 @@ export interface EngineSnapshot {
   redo: RedoLogState;
   undo: UndoLogRecord[];
   locks: Lock[];
+  readView: ReadView | null;
 }
 
 /** One StepEvent plus the state of the whole engine right after it happened. */

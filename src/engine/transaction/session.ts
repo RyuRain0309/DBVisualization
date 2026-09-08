@@ -86,6 +86,18 @@ export class Session implements ExecutionContext {
     return tx;
   }
 
+  peekNextTransactionId(): number {
+    return this.nextTxId;
+  }
+
+  activeTransactionIds(): number[] {
+    return this.transaction?.isActive ? [this.transaction.id] : [];
+  }
+
+  statementIndex(): number {
+    return this.collected.length;
+  }
+
   finishTransaction(state: 'committed' | 'rolled-back'): void {
     if (this.transaction) this.transaction.state = state;
     this.transaction = null;
@@ -115,6 +127,7 @@ export class Session implements ExecutionContext {
       redo: this.redoLog.state(),
       undo: this.undoLog.all(),
       locks: this.lockManager.held(),
+      readView: this.transaction?.readView ?? null,
     };
   }
 
