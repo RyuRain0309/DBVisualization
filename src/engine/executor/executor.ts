@@ -136,8 +136,15 @@ function beginImplicit(ctx: ExecutionContext): Transaction {
 }
 
 function executeBegin(ctx: ExecutionContext): void {
-  if (ctx.transaction?.isActive) {
-    throw new ExecutionError('A transaction is already active');
+  const running = ctx.transaction;
+  if (running?.isActive) {
+    // MySQL does not reject a nested BEGIN: starting a transaction implicitly commits
+    // whatever was already open.
+    ctx.emit({
+      type: 'note',
+      explanation: `이미 트랜잭션 ${running.id} 이 열려 있어, BEGIN 이 그 트랜잭션을 먼저 암시적으로 커밋한다.`,
+    });
+    commitTransaction(ctx, running);
   }
   const tx = ctx.beginTransaction(false);
   ctx.emit({

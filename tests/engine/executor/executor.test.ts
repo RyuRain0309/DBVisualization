@@ -205,6 +205,20 @@ describe('transactions', () => {
     expect(rowsOf(session, 'SELECT * FROM users')).toEqual([{ id: 1, name: 'a', email: 'a@x' }]);
   });
 
+  it('implicitly commits the open transaction when BEGIN is issued again', () => {
+    const session = sessionWithTable();
+    run(session, 'BEGIN');
+    run(session, "INSERT INTO users VALUES (1, 'a', 'a@x')");
+    const firstTxId = session.transaction!.id;
+
+    const events = run(session, 'BEGIN');
+
+    expect(events.find((e) => e.type === 'transaction-commit')).toMatchObject({ txId: firstTxId });
+    expect(session.transaction!.id).not.toBe(firstTxId);
+    // The implicitly committed insert stays.
+    expect(rowsOf(session, 'SELECT * FROM users')).toHaveLength(1);
+  });
+
   it('refuses to change the isolation level while a transaction is open', () => {
     const session = sessionWithTable();
     run(session, 'BEGIN');
