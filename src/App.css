@@ -1,16 +1,22 @@
 :root {
-  --bg: #0f1116;
-  --bg-panel: #161a23;
-  --bg-raised: #1d2230;
-  --border: #2a3040;
-  --text: #e6e9f0;
-  --text-dim: #98a1b3;
-  --accent: #5aa9ff;
-  --accent-soft: rgba(90, 169, 255, 0.16);
-  --warn: #ffb454;
-  --danger: #ff6b6b;
-  --leaf: #1e2a3d;
-  --internal: #2a2438;
+  --bg: #f4f6fa;
+  --bg-panel: #ffffff;
+  --bg-raised: #eef1f6;
+  --border: #d8dee9;
+  --border-strong: #b9c2d2;
+  --text: #1b2432;
+  --text-dim: #667087;
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.1);
+  --warn: #b5670a;
+  --danger: #d32f2f;
+  --ok: #17864a;
+  --mvcc: #7c3aed;
+  --leaf: #eaf2ff;
+  --internal: #f4ecff;
+  --overlay: rgba(15, 23, 42, 0.04);
+  --overlay-line: rgba(15, 23, 42, 0.09);
+  --on-accent: #ffffff;
   --mono: 'SFMono-Regular', 'JetBrains Mono', Menlo, Consolas, monospace;
 }
 
@@ -146,7 +152,7 @@ body {
 .button--primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #06121f;
+  color: var(--on-accent);
   font-weight: 600;
 }
 
@@ -438,12 +444,12 @@ body {
 }
 
 .page__cell {
-  fill: rgba(255, 255, 255, 0.04);
-  stroke: rgba(255, 255, 255, 0.07);
+  fill: var(--overlay);
+  stroke: var(--overlay-line);
 }
 
 .page__cell--deleted {
-  fill: rgba(255, 107, 107, 0.16);
+  fill: rgba(211, 47, 47, 0.12);
   stroke: var(--danger);
 }
 
@@ -479,7 +485,7 @@ body {
 }
 
 .leaf-link {
-  stroke: rgba(90, 169, 255, 0.35);
+  stroke: rgba(37, 99, 235, 0.4);
   stroke-width: 1.2;
   stroke-dasharray: 4 3;
 }
@@ -545,7 +551,7 @@ body {
   gap: 6px;
   align-items: center;
   padding: 5px 0;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+  border-bottom: 1px dashed var(--overlay-line);
   font-size: 11.5px;
 }
 
@@ -562,18 +568,18 @@ body {
 }
 
 .lock-mode--X {
-  background: rgba(255, 107, 107, 0.2);
+  background: rgba(211, 47, 47, 0.12);
   color: var(--danger);
 }
 
 .lock-mode--S {
-  background: rgba(90, 169, 255, 0.2);
+  background: var(--accent-soft);
   color: var(--accent);
 }
 
 .lock-mode--IX,
 .lock-mode--IS {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--overlay);
   color: var(--text-dim);
 }
 
@@ -600,7 +606,7 @@ body {
   gap: 6px;
   align-items: center;
   padding: 4px 0;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+  border-bottom: 1px dashed var(--overlay-line);
   font-size: 11px;
   opacity: 0.85;
 }
@@ -638,8 +644,8 @@ body {
 }
 
 .log-state--durable {
-  border-color: #4bd18d;
-  color: #4bd18d;
+  border-color: var(--ok);
+  color: var(--ok);
 }
 
 .log-state--retained {
@@ -659,16 +665,16 @@ body {
 
 .lock-badge--X {
   fill: var(--danger);
-  stroke: #2a0f0f;
+  stroke: #ffffff;
 }
 
 .lock-badge--S {
   fill: var(--accent);
-  stroke: #0a1a2a;
+  stroke: #ffffff;
 }
 
 .lock-badge__text {
-  fill: #0f1116;
+  fill: #ffffff;
   font-size: 9px;
   font-weight: 700;
   font-family: var(--mono);
@@ -676,14 +682,14 @@ body {
 }
 
 .gap-lock {
-  fill: rgba(255, 180, 84, 0.55);
+  fill: rgba(181, 103, 10, 0.32);
   stroke: var(--warn);
   stroke-width: 1;
   stroke-dasharray: 3 2;
 }
 
 .gap-lock--intention {
-  fill: rgba(90, 169, 255, 0.35);
+  fill: rgba(37, 99, 235, 0.28);
   stroke: var(--accent);
 }
 
@@ -729,8 +735,8 @@ body {
 
 .feed__tag--read-view-create,
 .feed__tag--visibility-check {
-  color: #b48bff;
-  border-color: #b48bff;
+  color: var(--mvcc);
+  border-color: var(--mvcc);
 }
 
 .feed__tag--lock-acquire,
