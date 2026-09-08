@@ -1,7 +1,7 @@
 import { createPageIdAllocator, type PageIdAllocator } from '../btree/btree';
 import { CLUSTERED_INDEX_ID } from '../btree/clusteredIndex';
 import type { TreeSnapshot } from '../btree/types';
-import { executeStatement, type ExecutionContext } from '../executor/executor';
+import { executeStatement, rollbackTransaction, type ExecutionContext } from '../executor/executor';
 import type { EngineSnapshot, ExecutionStep, IndexSnapshot, StepEvent } from '../executor/events';
 import { RedoLog } from '../logs/redoLog';
 import { UndoLog } from '../logs/undoLog';
@@ -51,6 +51,13 @@ export class Session implements ExecutionContext {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.emit({ type: 'note', explanation: `실행 실패: ${message}`, detail: message });
+
+      // A failed statement outside BEGIN takes its implicit transaction down with it.
+      // Inside an explicit transaction MySQL only rolls back the statement and leaves the
+      // transaction open, so the session keeps holding whatever it had.
+      const tx = this.transaction;
+      if (tx?.isActive && tx.implicit) rollbackTransaction(this, tx);
+
       return { steps: this.collected, error: message };
     }
   }

@@ -166,7 +166,10 @@ function commitTransaction(ctx: ExecutionContext, tx: Transaction): void {
 function executeRollback(ctx: ExecutionContext): void {
   const tx = ctx.transaction;
   if (!tx?.isActive) throw new ExecutionError('No transaction is active');
+  rollbackTransaction(ctx, tx);
+}
 
+export function rollbackTransaction(ctx: ExecutionContext, tx: Transaction): void {
   // Undo records are applied newest first, so a row touched several times walks back
   // through its own version chain in order.
   for (const record of ctx.undoLog.recordsOf(tx.id)) {

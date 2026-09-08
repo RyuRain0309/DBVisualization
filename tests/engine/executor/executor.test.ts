@@ -190,7 +190,8 @@ describe('transactions', () => {
     run(session, 'ROLLBACK');
 
     expect(rowsOf(session, 'SELECT * FROM users')).toEqual([]);
-    expect(session.snapshot().tables[0]!.indexes[1]!.tree.pages.flatMap((p) => p.entries)).toEqual([]);
+    const secondaryPages = session.snapshot().tables[0]!.indexes[1]!.tree.pages;
+    expect(secondaryPages.flatMap((page) => page.entries as unknown[])).toEqual([]);
   });
 
   it('brings a deleted row back on ROLLBACK', () => {
@@ -240,5 +241,25 @@ describe('access paths', () => {
 
     expect(traverse.type === 'index-traverse' && traverse.access).toContain('idx_email');
     expect(traverse.explanation).toContain('클러스터드 인덱스 재조회');
+  });
+});
+
+describe('failed statements', () => {
+  it('rolls back the implicit transaction when a statement fails', () => {
+    const session = sessionWithTable();
+    run(session, "INSERT INTO users VALUES (1, 'a', 'a@x')");
+    expect(session.run("INSERT INTO users VALUES (1, 'z', 'z@x')").error).toBeTruthy();
+
+    expect(session.transaction).toBeNull();
+    expect(rowsOf(session, 'SELECT * FROM users')).toEqual([{ id: 1, name: 'a', email: 'a@x' }]);
+  });
+
+  it('keeps an explicit transaction open when a statement fails', () => {
+    const session = sessionWithTable();
+    run(session, 'BEGIN');
+    run(session, "INSERT INTO users VALUES (1, 'a', 'a@x')");
+    expect(session.run("INSERT INTO users VALUES (1, 'z', 'z@x')").error).toBeTruthy();
+
+    expect(session.transaction?.isActive).toBe(true);
   });
 });
