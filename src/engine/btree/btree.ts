@@ -199,35 +199,52 @@ export class BTree<V> {
   }
 
   private borrowFromLeft(page: Page<V>, left: Page<V>): void {
-    const moved = left.entries.pop()!;
-    // The two pages are always at the same level, so their entry shapes match.
-    (page.entries as typeof left.entries).unshift(moved);
-    if (page.kind === 'internal') {
-      this.getPage((moved as { childId: PageId }).childId).parentId = page.id;
+    let movedKey: KeyValue;
+    if (page.kind === 'leaf' && left.kind === 'leaf') {
+      const moved = left.entries.pop()!;
+      page.entries.unshift(moved);
+      movedKey = moved.key;
+    } else if (page.kind === 'internal' && left.kind === 'internal') {
+      const moved = left.entries.pop()!;
+      page.entries.unshift(moved);
+      this.getPage(moved.childId).parentId = page.id;
+      movedKey = moved.key;
+    } else {
+      throw new Error('Sibling pages must be on the same level');
     }
+
     this.record({
       type: 'redistribute',
       indexId: this.indexId,
       fromPageId: left.id,
       toPageId: page.id,
-      key: moved.key,
+      key: movedKey,
       level: page.level,
     });
     this.refreshParentKey(page);
   }
 
   private borrowFromRight(page: Page<V>, right: Page<V>): void {
-    const moved = right.entries.shift()!;
-    (page.entries as typeof right.entries).push(moved);
-    if (page.kind === 'internal') {
-      this.getPage((moved as { childId: PageId }).childId).parentId = page.id;
+    let movedKey: KeyValue;
+    if (page.kind === 'leaf' && right.kind === 'leaf') {
+      const moved = right.entries.shift()!;
+      page.entries.push(moved);
+      movedKey = moved.key;
+    } else if (page.kind === 'internal' && right.kind === 'internal') {
+      const moved = right.entries.shift()!;
+      page.entries.push(moved);
+      this.getPage(moved.childId).parentId = page.id;
+      movedKey = moved.key;
+    } else {
+      throw new Error('Sibling pages must be on the same level');
     }
+
     this.record({
       type: 'redistribute',
       indexId: this.indexId,
       fromPageId: right.id,
       toPageId: page.id,
-      key: moved.key,
+      key: movedKey,
       level: page.level,
     });
     this.refreshParentKey(right);
@@ -236,19 +253,20 @@ export class BTree<V> {
   /** Moves everything from `source` into `target` and unlinks `source` from the tree. */
   private mergePages(target: Page<V>, source: Page<V>, parent: InternalPage): void {
     const movedEntries = source.entries.length;
-    (target.entries as typeof source.entries).push(...source.entries);
-
-    if (target.kind === 'internal' && source.kind === 'internal') {
-      for (const entry of source.entries) {
-        this.getPage(entry.childId).parentId = target.id;
-      }
-    }
 
     if (target.kind === 'leaf' && source.kind === 'leaf') {
+      target.entries.push(...source.entries);
       target.nextLeafId = source.nextLeafId;
       if (source.nextLeafId !== null) {
         (this.getPage(source.nextLeafId) as LeafPage<V>).prevLeafId = target.id;
       }
+    } else if (target.kind === 'internal' && source.kind === 'internal') {
+      target.entries.push(...source.entries);
+      for (const entry of source.entries) {
+        this.getPage(entry.childId).parentId = target.id;
+      }
+    } else {
+      throw new Error('Sibling pages must be on the same level');
     }
 
     const sourceSlot = parent.entries.findIndex((e) => e.childId === source.id);
