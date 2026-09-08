@@ -149,6 +149,151 @@ export class BTree<V> {
     return { path, leafId, mutations: this.mutations };
   }
 
+  remove(key: KeyValue): MutationResult {
+    this.mutations = [];
+    const { path, leafId, slot, found } = this.search(key);
+    if (!found) throw new Error(`Key '${formatKey(key)}' not found in index '${this.indexId}'`);
+
+    const leaf = this.getPage(leafId) as LeafPage<V>;
+    leaf.entries.splice(slot, 1);
+    this.record({ type: 'remove-entry', indexId: this.indexId, pageId: leaf.id, key });
+
+    if (slot === 0 && leaf.entries.length > 0) this.refreshParentKey(leaf);
+    this.handleUnderflow(leaf);
+
+    return { path, leafId, mutations: this.mutations };
+  }
+
+  /** InnoDB merges a page into a sibling once its fill factor drops below the merge threshold. */
+  private get minEntries(): number {
+    return Math.floor(this.capacity / 2);
+  }
+
+  private handleUnderflow(page: Page<V>): void {
+    if (page.parentId === null) {
+      this.shrinkRoot(page);
+      return;
+    }
+    if (page.entries.length >= this.minEntries) return;
+
+    const parent = this.getPage(page.parentId) as InternalPage;
+    const slot = parent.entries.findIndex((e) => e.childId === page.id);
+    const left = slot > 0 ? this.getPage(parent.entries[slot - 1]!.childId) : null;
+    const right =
+      slot < parent.entries.length - 1 ? this.getPage(parent.entries[slot + 1]!.childId) : null;
+
+    if (left && left.entries.length > this.minEntries) {
+      this.borrowFromLeft(page, left);
+      return;
+    }
+    if (right && right.entries.length > this.minEntries) {
+      this.borrowFromRight(page, right);
+      return;
+    }
+    if (left) {
+      this.mergePages(left, page, parent);
+    } else if (right) {
+      this.mergePages(page, right, parent);
+    }
+    this.handleUnderflow(parent);
+  }
+
+  private borrowFromLeft(page: Page<V>, left: Page<V>): void {
+    const moved = left.entries.pop()!;
+    // The two pages are always at the same level, so their entry shapes match.
+    (page.entries as typeof left.entries).unshift(moved);
+    if (page.kind === 'internal') {
+      this.getPage((moved as { childId: PageId }).childId).parentId = page.id;
+    }
+    this.record({
+      type: 'redistribute',
+      indexId: this.indexId,
+      fromPageId: left.id,
+      toPageId: page.id,
+      key: moved.key,
+      level: page.level,
+    });
+    this.refreshParentKey(page);
+  }
+
+  private borrowFromRight(page: Page<V>, right: Page<V>): void {
+    const moved = right.entries.shift()!;
+    (page.entries as typeof right.entries).push(moved);
+    if (page.kind === 'internal') {
+      this.getPage((moved as { childId: PageId }).childId).parentId = page.id;
+    }
+    this.record({
+      type: 'redistribute',
+      indexId: this.indexId,
+      fromPageId: right.id,
+      toPageId: page.id,
+      key: moved.key,
+      level: page.level,
+    });
+    this.refreshParentKey(right);
+  }
+
+  /** Moves everything from `source` into `target` and unlinks `source` from the tree. */
+  private mergePages(target: Page<V>, source: Page<V>, parent: InternalPage): void {
+    const movedEntries = source.entries.length;
+    (target.entries as typeof source.entries).push(...source.entries);
+
+    if (target.kind === 'internal' && source.kind === 'internal') {
+      for (const entry of source.entries) {
+        this.getPage(entry.childId).parentId = target.id;
+      }
+    }
+
+    if (target.kind === 'leaf' && source.kind === 'leaf') {
+      target.nextLeafId = source.nextLeafId;
+      if (source.nextLeafId !== null) {
+        (this.getPage(source.nextLeafId) as LeafPage<V>).prevLeafId = target.id;
+      }
+    }
+
+    const sourceSlot = parent.entries.findIndex((e) => e.childId === source.id);
+    parent.entries.splice(sourceSlot, 1);
+    this.pages.delete(source.id);
+
+    this.record({
+      type: 'page-merge',
+      indexId: this.indexId,
+      pageId: target.id,
+      removedPageId: source.id,
+      level: target.level,
+      movedEntries,
+    });
+
+    if (sourceSlot === 0) this.refreshParentKey(parent);
+  }
+
+  private shrinkRoot(root: Page<V>): void {
+    if (root.kind === 'leaf') {
+      if (root.entries.length > 0) return;
+      this.pages.delete(root.id);
+      this.rootId = null;
+      this.record({
+        type: 'root-shrink',
+        indexId: this.indexId,
+        removedPageId: root.id,
+        newRootId: null,
+      });
+      return;
+    }
+
+    if (root.entries.length > 1) return;
+    const child = this.getPage(root.entries[0]!.childId);
+    child.parentId = null;
+    this.rootId = child.id;
+    this.pages.delete(root.id);
+    this.record({
+      type: 'root-shrink',
+      indexId: this.indexId,
+      removedPageId: root.id,
+      newRootId: child.id,
+    });
+  }
+
   private createLeaf(): LeafPage<V> {
     const page: LeafPage<V> = {
       kind: 'leaf',
