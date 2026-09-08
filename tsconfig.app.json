@@ -16,10 +16,9 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    "baseUrl": ".",
     "paths": {
-      "@engine/*": ["src/engine/*"],
-      "@/*": ["src/*"]
+      "@engine/*": ["./src/engine/*"],
+      "@/*": ["./src/*"]
     },
 
     /* Linting */

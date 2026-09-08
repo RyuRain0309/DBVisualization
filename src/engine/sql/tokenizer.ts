@@ -9,11 +9,11 @@ export interface Token {
 }
 
 export class SqlSyntaxError extends Error {
-  constructor(
-    message: string,
-    readonly position: number,
-  ) {
+  readonly position: number;
+
+  constructor(message: string, position: number) {
     super(message);
+    this.position = position;
   }
 }
 
