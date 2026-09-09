@@ -958,89 +958,84 @@ body {
 /* welcome */
 .welcome {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  place-items: center;
   padding: 48px 24px;
-  background: linear-gradient(180deg, #ffffff 0%, var(--bg) 100%);
+  background: radial-gradient(circle at 50% 0%, #ffffff 0%, var(--bg) 60%);
 }
 
 .welcome__inner {
-  max-width: 880px;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 18px;
+  max-width: 520px;
 }
 
-.welcome__eyebrow {
-  margin: 0 0 10px;
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+.welcome__mark {
+  width: 72px;
+  height: 56px;
+}
+
+.welcome__mark-node {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.welcome__mark-leaf {
+  fill: var(--leaf);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.welcome__mark-edge {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
 }
 
 .welcome__title {
-  margin: 0 0 14px;
+  margin: 0;
   font-size: 30px;
-  line-height: 1.35;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .welcome__lead {
-  margin: 0 0 28px;
+  margin: -8px 0 0;
   color: var(--text-dim);
   font-size: 14px;
-  line-height: 1.7;
-  max-width: 720px;
+  line-height: 1.6;
 }
 
-.welcome__points {
+.welcome__keywords {
   list-style: none;
-  margin: 0 0 24px;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 14px;
-}
-
-.welcome__points li {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg-panel);
-  padding: 16px 18px;
-}
-
-.welcome__points h2 {
-  margin: 0 0 6px;
-  font-size: 14px;
-}
-
-.welcome__points p {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
   margin: 0;
+  padding: 0;
+}
+
+.welcome__keywords li {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
   color: var(--text-dim);
-  font-size: 12.5px;
-  line-height: 1.65;
+  background: var(--bg-panel);
 }
 
-.welcome__note {
-  display: grid;
-  gap: 4px;
-  border-left: 3px solid var(--warn);
-  padding: 2px 0 2px 12px;
-  margin-bottom: 26px;
-  font-size: 12.5px;
-  line-height: 1.65;
-}
-
-.welcome__note strong {
-  color: var(--warn);
-}
-
-.welcome__note span {
+.welcome__foot {
+  margin: -6px 0 0;
   color: var(--text-dim);
+  font-size: 11.5px;
 }
 
 .button--large {
   font-size: 14px;
-  padding: 10px 26px;
+  padding: 11px 34px;
   border-radius: 8px;
 }
 
