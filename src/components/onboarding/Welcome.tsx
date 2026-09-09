@@ -1,4 +1,4 @@
-import { DolphinMark } from './DolphinMark';
+import { AppMark } from './AppMark';
 import { useEngineStore } from '../../store/engineStore';
 
 const KEYWORDS = ['B+tree', '레코드 · 갭 락', 'redo / undo', 'MVCC'];
@@ -9,10 +9,10 @@ export function Welcome() {
   return (
     <div className="welcome">
       <div className="welcome__inner">
-        <DolphinMark className="welcome__mark" />
+        <AppMark className="welcome__mark" />
         <h1 className="welcome__title">InnoDB Visualizer</h1>
         <p className="welcome__lead">
-          SQL 한 줄이 InnoDB 안에서 무슨 일을 하는지 한 단계씩 펼쳐 본다.
+          InnoDB 안에서 일어나는 일들을 직접 확인하세요.
         </p>
 
         <ul className="welcome__keywords">
@@ -25,7 +25,7 @@ export function Welcome() {
           시작하기
         </button>
 
-        <p className="welcome__foot">실제 MySQL 에 연결하지 않는 브라우저 시뮬레이터</p>
+        <p className="welcome__foot">InnoDB 기반 시각화 시뮬레이터</p>
       </div>
     </div>
   );

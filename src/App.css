@@ -973,20 +973,16 @@ body {
 }
 
 .welcome__mark {
-  width: 132px;
-  height: 99px;
+  width: 92px;
+  height: 92px;
 }
 
-.dolphin__body {
-  fill: var(--accent);
+.mark {
+  stroke: var(--accent);
 }
 
-.dolphin__fin {
-  fill: #1d4ed8;
-}
-
-.dolphin__eye {
-  fill: #ffffff;
+.mark__lens {
+  fill: rgba(37, 99, 235, 0.08);
 }
 
 .welcome__title {
