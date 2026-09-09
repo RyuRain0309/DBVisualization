@@ -2,7 +2,7 @@ import type { BTreeMutation } from '../btree/types';
 import type { LockManager } from '../locks/lockManager';
 import { computeRequiredLocks, type StatementLockKind } from '../locks/lockRequirements';
 import type { LockMode, LockRequest } from '../locks/types';
-import type { RedoLog } from '../logs/redoLog';
+import { redoPageOf, type RedoLog } from '../logs/redoLog';
 import type { UndoLog, UndoLogRecord } from '../logs/undoLog';
 import { compareKeys, formatKey, type ClusteredRecord, type KeyValue, type Row } from '../schema/record';
 import { HIDDEN_ROW_ID, findColumn, valueMatchesType, type TableDef } from '../schema/table';
@@ -22,6 +22,8 @@ import type { TableStorage, IndexOperation } from '../storage/tableStorage';
 import { describeMutation, describeRow } from './describe';
 import type { StepEvent } from './events';
 import { describeLockTarget } from '../locks/lockManager';
+import type { BufferPool } from '../memory/bufferPool';
+import type { DoublewriteBuffer } from '../memory/doublewrite';
 import { createReadView, describeReadView, type ReadView } from '../mvcc/readView';
 import { visibleVersionOf } from '../mvcc/versionChain';
 import { chooseAccessPath, matchesWhere, type AccessPath } from './predicate';
@@ -59,6 +61,8 @@ export interface ExecutionContext {
   readonly redoLog: RedoLog;
   readonly undoLog: UndoLog;
   readonly lockManager: LockManager;
+  readonly bufferPool: BufferPool;
+  readonly doublewrite: DoublewriteBuffer;
   isolationLevel: IsolationLevel;
   transaction: Transaction | null;
   storageOf(tableName: string): TableStorage;
@@ -270,7 +274,7 @@ function applyUndoRecord(ctx: ExecutionContext, tx: Transaction, record: UndoLog
       break;
   }
 
-  applyOperations(ctx, tx, operations);
+  applyOperations(ctx, tx, operations, record.tableName);
 }
 
 function undoApplyExplanation(record: UndoLogRecord): string {
@@ -310,7 +314,7 @@ function purgeCommitted(ctx: ExecutionContext): void {
       tableName: record.tableName,
       explanation: `purge: 커밋된 DELETE 의 delete-mark 레코드 PK (${formatKey(record.primaryKey)}) 를 이제 아무 read view 도 보지 않으므로 인덱스에서 실제로 제거한다.`,
     });
-    applyOperations(ctx, null, storage.purgeRow(record.primaryKey));
+    applyOperations(ctx, null, storage.purgeRow(record.primaryKey), record.tableName);
   }
 
   for (const record of ctx.undoLog.all()) {
@@ -407,6 +411,7 @@ function executeInsert(
       primaryKey,
       `클러스터드 인덱스에서 PK (${formatKey(primaryKey)}) 가 들어갈 리프 페이지를 루트부터 찾아 내려간다.`,
       '삽입 위치 탐색',
+      table.name,
     );
 
     // Locks come first: if the statement has to wait, nothing has been written yet.
@@ -428,7 +433,7 @@ function executeInsert(
       rollPtr: null,
     });
 
-    applyOperations(ctx, tx, storage.insertRow(row, { trxId: tx.id, rollPtr: undo.undoNo }));
+    applyOperations(ctx, tx, storage.insertRow(row, { trxId: tx.id, rollPtr: undo.undoNo }), table.name);
   }
 
   return statement.rows.length;
@@ -489,6 +494,7 @@ function executeUpdate(
       ctx,
       tx,
       storage.updateRow(key, newRow, changedColumns, { trxId: tx.id, rollPtr: undo.undoNo }),
+      table.name,
     );
   }
 
@@ -525,7 +531,7 @@ function executeDelete(
       explanation: `DELETE 는 레코드를 즉시 지우지 않고 delete-mark 만 남긴다. 이전 버전을 읽어야 하는 read view 가 있을 수 있기 때문이며, 실제 제거는 purge 가 한다.`,
     });
 
-    applyOperations(ctx, tx, storage.markDeleted(key, { trxId: tx.id, rollPtr: undo.undoNo }));
+    applyOperations(ctx, tx, storage.markDeleted(key, { trxId: tx.id, rollPtr: undo.undoNo }), storage.table.name);
   }
 
   return matched.length;
@@ -664,6 +670,7 @@ function findRows(
       access.key,
       `${access.description}. 루트에서 리프까지 ${result.path.length}개 페이지만 읽으면 된다.`,
       access.description,
+      storage.table.name,
     );
     const hit =
       result.found && result.value && !result.value.deleteMark && matchesWhere(result.value.row, where)
@@ -783,8 +790,38 @@ function emitTraverse(
   key: KeyValue | null,
   explanation: string,
   access: string,
+  tableName: string,
 ): void {
   ctx.emit({ type: 'index-traverse', indexId, path, key, access, explanation });
+  readPages(ctx, indexId, tableName, path);
+}
+
+/**
+ * Every page a statement touches has to be in the buffer pool first. Only the interesting
+ * moments are reported: a page arriving from disk, and whatever had to leave to make room.
+ */
+function readPages(
+  ctx: ExecutionContext,
+  indexId: string,
+  tableName: string,
+  pageIds: number[],
+): void {
+  for (const pageId of pageIds) {
+    const result = ctx.bufferPool.touch(pageId, indexId, tableName);
+    if (!result.loadedFromDisk) continue;
+
+    if (result.evicted?.dirty) {
+      flushFrames(ctx, [result.evicted]);
+    }
+    ctx.emit({
+      type: 'page-load',
+      frame: result.frame,
+      evicted: result.evicted,
+      explanation: result.evicted
+        ? `버퍼 풀에 없던 [${indexId}] 페이지 ${pageId} 을 디스크에서 읽어 올린다. 자리가 없어 가장 오래된 [${result.evicted.indexId}] 페이지 ${result.evicted.pageId} 를 밀어냈다.`
+        : `버퍼 풀에 없던 [${indexId}] 페이지 ${pageId} 을 디스크에서 읽어 올린다. 새로 읽은 페이지는 LRU 의 old 영역에 들어가, 한 번 더 읽혀야 young 으로 승격된다.`,
+    });
+  }
 }
 
 function appendUndo(
@@ -818,10 +855,11 @@ function applyOperations(
   ctx: ExecutionContext,
   tx: Transaction | null,
   operations: IndexOperation[],
+  tableName: string,
 ): void {
   for (const operation of operations) {
     for (const mutation of operation.mutations) {
-      emitMutation(ctx, tx, mutation);
+      emitMutation(ctx, tx, mutation, tableName);
     }
   }
 }
@@ -830,6 +868,7 @@ function emitMutation(
   ctx: ExecutionContext,
   tx: Transaction | null,
   mutation: BTreeMutation,
+  tableName: string,
 ): void {
   const description = describeMutation(mutation);
   ctx.emit({
@@ -844,6 +883,70 @@ function emitMutation(
     type: 'redo-append',
     record: redo,
     explanation: `redo 레코드 LSN ${redo.lsn} (${redo.kind}) 를 로그 버퍼에 추가. 아직 디스크에 내려가지 않은 상태다.`,
+  });
+
+  // The page itself stays dirty in the buffer pool; only the log went anywhere (WAL).
+  if (mutation.type === 'root-shrink') {
+    ctx.bufferPool.forget(mutation.removedPageId, mutation.indexId);
+    if (mutation.newRootId !== null) {
+      ctx.bufferPool.markDirty(mutation.newRootId, mutation.indexId, tableName, redo.lsn);
+    }
+    return;
+  }
+  if (mutation.type === 'page-merge') {
+    ctx.bufferPool.forget(mutation.removedPageId, mutation.indexId);
+  }
+  ctx.bufferPool.markDirty(redoPageOf(mutation), mutation.indexId, tableName, redo.lsn);
+}
+
+/**
+ * Writes dirty pages back to their tablespaces, through the doublewrite buffer. InnoDB does
+ * this in the background and at checkpoints — never as part of COMMIT, which only needs the
+ * redo log to be durable.
+ */
+export function flushFrames(ctx: ExecutionContext, frames: ReturnType<BufferPool['dirtyFrames']>): number {
+  if (frames.length === 0) return 0;
+
+  const lsn = Math.max(...frames.map((frame) => frame.lastLsn));
+  const batch = ctx.doublewrite.write(
+    frames.map((frame) => ({
+      pageId: frame.pageId,
+      indexId: frame.indexId,
+      tableName: frame.tableName,
+    })),
+    lsn,
+  );
+
+  ctx.emit({
+    type: 'page-flush',
+    frames: frames.map((frame) => ({ ...frame })),
+    batchId: batch.id,
+    explanation: `더티 페이지 ${frames.length}개를 먼저 doublewrite 버퍼에 통째로 쓴 다음, 각 테이블스페이스의 제자리에 쓴다. 쓰다가 중단돼 페이지가 찢어져도 사본으로 복구할 수 있게 하는 장치다.`,
+  });
+
+  ctx.bufferPool.markFlushed(frames);
+  return lsn;
+}
+
+/** A checkpoint: flush every dirty page and advance the checkpoint LSN. */
+export function runCheckpoint(ctx: ExecutionContext): void {
+  const dirty = ctx.bufferPool.dirtyFrames();
+  if (dirty.length === 0) {
+    ctx.emit({
+      type: 'checkpoint',
+      flushedPages: 0,
+      upToLsn: ctx.redoLog.state().flushedUpToLsn,
+      explanation: '더티 페이지가 없어 내려쓸 것이 없다. 버퍼 풀의 페이지가 모두 디스크와 같은 상태다.',
+    });
+    return;
+  }
+
+  const lsn = flushFrames(ctx, dirty);
+  ctx.emit({
+    type: 'checkpoint',
+    flushedPages: dirty.length,
+    upToLsn: lsn,
+    explanation: `체크포인트 완료. LSN ${lsn} 까지의 변경이 데이터 파일에도 반영됐으므로, 그 이전 redo 는 복구에 더 이상 필요 없다.`,
   });
 }
 

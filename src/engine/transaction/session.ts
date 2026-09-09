@@ -3,10 +3,13 @@ import {
   LockWaitError,
   executeStatement,
   rollbackTransaction,
+  runCheckpoint,
   type ExecutionContext,
 } from '../executor/executor';
 import type { ExecutionStep, SessionSnapshot, StepEvent } from '../executor/events';
 import type { LockManager } from '../locks/lockManager';
+import type { BufferPool } from '../memory/bufferPool';
+import type { DoublewriteBuffer } from '../memory/doublewrite';
 import type { RedoLog } from '../logs/redoLog';
 import type { UndoLog } from '../logs/undoLog';
 import type { Catalog } from '../schema/catalog';
@@ -59,6 +62,14 @@ export class Session implements ExecutionContext {
     return this.db.lockManager;
   }
 
+  get bufferPool(): BufferPool {
+    return this.db.bufferPool;
+  }
+
+  get doublewrite(): DoublewriteBuffer {
+    return this.db.doublewrite;
+  }
+
   get isWaiting(): boolean {
     return this.pendingSql !== null;
   }
@@ -70,6 +81,14 @@ export class Session implements ExecutionContext {
       steps: this.db.collectedSteps(),
       error: this.lastError,
     };
+  }
+
+  /** Flushes every dirty page, the way a background checkpoint would. */
+  checkpoint(): RunResult {
+    this.db.beginCollecting();
+    runCheckpoint(this);
+    this.db.checkpointLsn = this.redoLog.state().flushedUpToLsn;
+    return { steps: this.db.collectedSteps(), error: null };
   }
 
   /** Runs a statement that had been waiting for a lock, inside the caller's timeline. */

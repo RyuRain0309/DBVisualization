@@ -1,5 +1,7 @@
 import type { BTreeMutation, PageId, TreeSnapshot } from '../btree/types';
 import type { Lock, LockRequest } from '../locks/types';
+import type { BufferFrame, BufferPoolState } from '../memory/bufferPool';
+import type { DoublewriteBatch } from '../memory/doublewrite';
 import type { RedoLogRecord, RedoLogState } from '../logs/redoLog';
 import type { UndoLogRecord } from '../logs/undoLog';
 import type { ReadView } from '../mvcc/readView';
@@ -31,6 +33,9 @@ export type StepEventType =
   | 'deadlock'
   | 'read-view-create'
   | 'visibility-check'
+  | 'page-load'
+  | 'page-flush'
+  | 'checkpoint'
   | 'rows-returned'
   | 'note';
 
@@ -73,6 +78,9 @@ export type StepEvent =
       hops: number;
       visibleTrxId: number | null;
     })
+  | (BaseEvent & { type: 'page-load'; frame: BufferFrame; evicted: BufferFrame | null })
+  | (BaseEvent & { type: 'page-flush'; frames: BufferFrame[]; batchId: number })
+  | (BaseEvent & { type: 'checkpoint'; flushedPages: number; upToLsn: number })
   | (BaseEvent & { type: 'rows-returned'; rows: Row[] })
   | (BaseEvent & { type: 'note'; detail?: string });
 
@@ -115,6 +123,10 @@ export interface EngineSnapshot {
   redo: RedoLogState;
   undo: UndoLogRecord[];
   locks: Lock[];
+  bufferPool: BufferPoolState;
+  doublewrite: DoublewriteBatch[];
+  /** LSN up to which dirty pages have been written back to the tablespaces. */
+  checkpointLsn: number;
 }
 
 /** One StepEvent plus the state of the whole engine right after it happened. */

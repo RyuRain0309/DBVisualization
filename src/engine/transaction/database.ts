@@ -3,6 +3,8 @@ import { CLUSTERED_INDEX_ID } from '../btree/clusteredIndex';
 import type { TreeSnapshot } from '../btree/types';
 import type { EngineSnapshot, ExecutionStep, IndexSnapshot, StepEvent } from '../executor/events';
 import { LockManager } from '../locks/lockManager';
+import { BufferPool, DEFAULT_BUFFER_POOL_PAGES } from '../memory/bufferPool';
+import { DoublewriteBuffer } from '../memory/doublewrite';
 import { RedoLog } from '../logs/redoLog';
 import { UndoLog } from '../logs/undoLog';
 import { Catalog } from '../schema/catalog';
@@ -29,7 +31,11 @@ export class Database {
   readonly redoLog = new RedoLog();
   readonly undoLog = new UndoLog();
   readonly lockManager = new LockManager();
+  readonly bufferPool: BufferPool;
+  readonly doublewrite = new DoublewriteBuffer();
   readonly pageCapacity: number;
+  /** LSN up to which dirty pages have been written back to the tablespaces. */
+  checkpointLsn = 0;
 
   private readonly storages = new Map<string, TableStorage>();
   private readonly allocator: PageIdAllocator = createPageIdAllocator();
@@ -39,8 +45,12 @@ export class Database {
   private nextSessionId = 1;
   private collected: ExecutionStep[] = [];
 
-  constructor(pageCapacity: number = DEFAULT_PAGE_CAPACITY) {
+  constructor(
+    pageCapacity: number = DEFAULT_PAGE_CAPACITY,
+    bufferPoolPages: number = DEFAULT_BUFFER_POOL_PAGES,
+  ) {
     this.pageCapacity = pageCapacity;
+    this.bufferPool = new BufferPool(bufferPoolPages);
   }
 
   openSession(name?: string): Session {
@@ -170,6 +180,9 @@ export class Database {
       redo: this.redoLog.state(),
       undo: this.undoLog.all(),
       locks: this.lockManager.held(),
+      bufferPool: this.bufferPool.state(),
+      doublewrite: this.doublewrite.state(),
+      checkpointLsn: this.checkpointLsn,
     };
   }
 
