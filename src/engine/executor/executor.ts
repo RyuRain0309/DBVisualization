@@ -28,6 +28,32 @@ import { chooseAccessPath, matchesWhere, type AccessPath } from './predicate';
 
 export class ExecutionError extends Error {}
 
+/** Thrown when a lock request conflicts: the statement is parked until the blocker finishes. */
+export class LockWaitError extends Error {
+  readonly blockerTxId: number;
+  readonly request: LockRequest;
+  readonly description: string;
+
+  constructor(blockerTxId: number, request: LockRequest, description: string) {
+    super(`Lock wait: ${description} held by transaction ${blockerTxId}`);
+    this.blockerTxId = blockerTxId;
+    this.request = request;
+    this.description = description;
+  }
+}
+
+/** Thrown when granting a lock would close a cycle in the wait-for graph. */
+export class DeadlockError extends Error {
+  readonly victimTxId: number;
+  readonly cycle: number[];
+
+  constructor(victimTxId: number, cycle: number[]) {
+    super('Deadlock found when trying to get lock; try restarting transaction');
+    this.victimTxId = victimTxId;
+    this.cycle = cycle;
+  }
+}
+
 export interface ExecutionContext {
   readonly catalog: Catalog;
   readonly redoLog: RedoLog;
@@ -43,6 +69,8 @@ export interface ExecutionContext {
   /** Other transactions still running when a read view is taken. */
   activeTransactionIds(): number[];
   statementIndex(): number;
+  /** Transactions the given one is (transitively) waiting for, used for deadlock detection. */
+  waitsFor?(txId: number): number[];
   finishTransaction(state: 'committed' | 'rolled-back'): void;
   emit(event: StepEvent): void;
 }
@@ -263,6 +291,10 @@ function undoApplyExplanation(record: UndoLogRecord): string {
  * other read view can still need the old versions.
  */
 function purgeCommitted(ctx: ExecutionContext): void {
+  // With other transactions still running, their read views may need these old versions,
+  // so purge has to wait — exactly why undo can pile up under long-running transactions.
+  if (ctx.activeTransactionIds().length > 0) return;
+
   const purgeable = ctx.undoLog
     .all()
     .filter((record) => record.state === 'retained' && record.kind === 'DELETE_UNDO');
@@ -368,17 +400,6 @@ function executeInsert(
       throw new ExecutionError(`Duplicate entry '${formatKey(primaryKey)}' for key 'PRIMARY'`);
     }
 
-    // The undo record is written before the page is modified, so a crash in between still
-    // leaves a way back.
-    const undo = appendUndo(ctx, tx, {
-      tableName: table.name,
-      kind: 'INSERT_UNDO',
-      primaryKey,
-      beforeImage: null,
-      beforeTrxId: null,
-      rollPtr: null,
-    });
-
     emitTraverse(
       ctx,
       'PRIMARY',
@@ -388,11 +409,23 @@ function executeInsert(
       '삽입 위치 탐색',
     );
 
+    // Locks come first: if the statement has to wait, nothing has been written yet.
     acquireLocks(ctx, tx, storage, 'insert', 'X', {
       access: { kind: 'pk-point', indexId: 'PRIMARY', key: primaryKey, indexConditions: [], description: '삽입 위치' },
       matchedKeys: [primaryKey],
       scannedKeys: [],
       reachedEnd: false,
+    });
+
+    // The undo record is written before the page is modified, so a crash in between still
+    // leaves a way back.
+    const undo = appendUndo(ctx, tx, {
+      tableName: table.name,
+      kind: 'INSERT_UNDO',
+      primaryKey,
+      beforeImage: null,
+      beforeTrxId: null,
+      rollPtr: null,
     });
 
     applyOperations(ctx, tx, storage.insertRow(row, { trxId: tx.id, rollPtr: undo.undoNo }));
@@ -691,6 +724,17 @@ function acquireLocks(
 
 function grantLocks(ctx: ExecutionContext, tx: Transaction, requests: LockRequest[]): void {
   for (const request of requests) {
+    const conflicts = ctx.lockManager.conflictsFor(tx.id, request);
+    const blocker = conflicts[0];
+    if (blocker) {
+      // Whoever is already waiting on us would deadlock if we now waited on them.
+      const chain = ctx.waitsFor?.(blocker.txId) ?? [];
+      if (blocker.txId === tx.id || chain.includes(tx.id)) {
+        throw new DeadlockError(tx.id, [tx.id, blocker.txId, ...chain]);
+      }
+      throw new LockWaitError(blocker.txId, request, describeLockTarget(request.target));
+    }
+
     const { lock, alreadyHeld } = ctx.lockManager.acquire(tx.id, request);
     if (alreadyHeld) continue;
     ctx.emit({

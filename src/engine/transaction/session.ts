@@ -1,19 +1,21 @@
-import { createPageIdAllocator, type PageIdAllocator } from '../btree/btree';
-import { CLUSTERED_INDEX_ID } from '../btree/clusteredIndex';
-import type { TreeSnapshot } from '../btree/types';
-import { executeStatement, rollbackTransaction, type ExecutionContext } from '../executor/executor';
-import type { EngineSnapshot, ExecutionStep, IndexSnapshot, StepEvent } from '../executor/events';
-import { LockManager } from '../locks/lockManager';
-import { RedoLog } from '../logs/redoLog';
-import { UndoLog } from '../logs/undoLog';
-import { Catalog } from '../schema/catalog';
-import { primaryKeyColumns, type TableDef } from '../schema/table';
+import {
+  DeadlockError,
+  LockWaitError,
+  executeStatement,
+  rollbackTransaction,
+  type ExecutionContext,
+} from '../executor/executor';
+import type { ExecutionStep, SessionSnapshot, StepEvent } from '../executor/events';
+import type { LockManager } from '../locks/lockManager';
+import type { RedoLog } from '../logs/redoLog';
+import type { UndoLog } from '../logs/undoLog';
+import type { Catalog } from '../schema/catalog';
+import type { TableDef } from '../schema/table';
 import { parse } from '../sql/parser';
-import { TableStorage } from '../storage/tableStorage';
+import type { TableStorage } from '../storage/tableStorage';
+import type { Database } from './database';
 import type { IsolationLevel } from './isolationLevel';
 import { Transaction } from './transaction';
-
-export const DEFAULT_PAGE_CAPACITY = 4;
 
 export interface RunResult {
   steps: ExecutionStep[];
@@ -21,37 +23,88 @@ export interface RunResult {
 }
 
 /**
- * One client connection: its catalog, its storage, its logs and its current transaction.
- * Everything a statement does is reported as a list of steps, each carrying a full snapshot
- * so the UI can scrub back and forth without re-running anything.
+ * One client connection. It owns only what a connection owns in MySQL: the current
+ * transaction, the isolation level and the read view. Tables, logs and the lock table live
+ * in the shared Database.
  */
 export class Session implements ExecutionContext {
-  readonly catalog = new Catalog();
-  readonly redoLog = new RedoLog();
-  readonly undoLog = new UndoLog();
-  readonly lockManager = new LockManager();
-  readonly pageCapacity: number;
+  readonly id: number;
+  name: string;
+  readonly db: Database;
   isolationLevel: IsolationLevel = 'REPEATABLE READ';
   transaction: Transaction | null = null;
+  /** SQL parked because another transaction holds a conflicting lock. */
+  pendingSql: string | null = null;
+  waitingForTxId: number | null = null;
 
-  private readonly storages = new Map<string, TableStorage>();
-  private readonly allocator: PageIdAllocator = createPageIdAllocator();
-  private nextTxId = 1;
-  private collected: ExecutionStep[] = [];
+  constructor(db: Database, id: number, name: string) {
+    this.db = db;
+    this.id = id;
+    this.name = name;
+  }
 
-  constructor(pageCapacity: number = DEFAULT_PAGE_CAPACITY) {
-    this.pageCapacity = pageCapacity;
+  get catalog(): Catalog {
+    return this.db.catalog;
+  }
+
+  get redoLog(): RedoLog {
+    return this.db.redoLog;
+  }
+
+  get undoLog(): UndoLog {
+    return this.db.undoLog;
+  }
+
+  get lockManager(): LockManager {
+    return this.db.lockManager;
+  }
+
+  get isWaiting(): boolean {
+    return this.pendingSql !== null;
   }
 
   run(sql: string): RunResult {
-    this.collected = [];
+    this.db.beginCollecting();
+    this.execute(sql);
+    return {
+      steps: this.db.collectedSteps(),
+      error: this.lastError,
+    };
+  }
+
+  /** Runs a statement that had been waiting for a lock, inside the caller's timeline. */
+  resumeAfterWait(sql: string, blockerTxId: number): void {
+    this.pendingSql = null;
+    this.waitingForTxId = null;
+    this.emit({
+      type: 'lock-granted',
+      blockerTxId,
+      sql,
+      explanation: `트랜잭션 ${blockerTxId} 이 끝나 락이 풀렸다. ${this.name} 의 대기 중이던 문장을 이어서 실행한다.`,
+    });
+    this.execute(sql);
+  }
+
+  private lastError: string | null = null;
+
+  private execute(sql: string): void {
+    this.lastError = null;
     try {
       for (const parsed of parse(sql)) {
         executeStatement(this, parsed);
       }
-      return { steps: this.collected, error: null };
     } catch (error) {
+      if (error instanceof LockWaitError) {
+        this.parkStatement(sql, error);
+        return;
+      }
+      if (error instanceof DeadlockError) {
+        this.handleDeadlock(error);
+        return;
+      }
+
       const message = error instanceof Error ? error.message : String(error);
+      this.lastError = message;
       this.emit({ type: 'note', explanation: `실행 실패: ${message}`, detail: message });
 
       // A failed statement outside BEGIN takes its implicit transaction down with it.
@@ -59,60 +112,90 @@ export class Session implements ExecutionContext {
       // transaction open, so the session keeps holding whatever it had.
       const tx = this.transaction;
       if (tx?.isActive && tx.implicit) rollbackTransaction(this, tx);
-
-      return { steps: this.collected, error: message };
     }
+  }
+
+  private parkStatement(sql: string, error: LockWaitError): void {
+    this.pendingSql = sql;
+    this.waitingForTxId = error.blockerTxId;
+    this.db.addWaiter(this, sql, error.blockerTxId);
+    this.emit({
+      type: 'lock-wait',
+      blockerTxId: error.blockerTxId,
+      request: error.request,
+      explanation: `${error.description} 을 트랜잭션 ${error.blockerTxId} 이 이미 잡고 있어 대기한다. 실제 InnoDB 도 여기서 innodb_lock_wait_timeout 까지 기다린다.`,
+    });
+  }
+
+  private handleDeadlock(error: DeadlockError): void {
+    this.lastError = 'Deadlock found when trying to get lock; try restarting transaction';
+    this.emit({
+      type: 'deadlock',
+      victimTxId: error.victimTxId,
+      cycle: error.cycle,
+      explanation: `데드락 감지 (대기 사이클: ${error.cycle.join(' → ')}). InnoDB 는 한쪽을 희생자로 골라 롤백시킨다. 여기서는 마지막에 락을 요청한 트랜잭션 ${error.victimTxId} 이 롤백된다.`,
+    });
+    const tx = this.transaction;
+    if (tx?.isActive) rollbackTransaction(this, tx);
+  }
+
+  /** Used when a console is closed while its transaction is still open. */
+  rollbackForShutdown(): void {
+    const tx = this.transaction;
+    if (!tx?.isActive) return;
+    this.emit({
+      type: 'note',
+      explanation: `${this.name} 이 닫혀 열려 있던 트랜잭션 ${tx.id} 을 롤백한다. 연결이 끊긴 트랜잭션은 커밋되지 않는다.`,
+    });
+    rollbackTransaction(this, tx);
   }
 
   storageOf(tableName: string): TableStorage {
-    const storage = this.storages.get(tableName.toLowerCase());
-    if (!storage) {
-      // Reuse the catalog's error wording for an unknown table.
-      this.catalog.getTable(tableName);
-      throw new Error(`Storage for table '${tableName}' is missing`);
-    }
-    return storage;
+    return this.db.storageOf(tableName);
   }
 
   createStorage(table: TableDef): TableStorage {
-    const storage = new TableStorage(table, this.pageCapacity, this.allocator);
-    this.storages.set(table.name.toLowerCase(), storage);
-    return storage;
+    return this.db.createStorage(table);
   }
 
   beginTransaction(implicit: boolean): Transaction {
-    const tx = new Transaction(this.nextTxId++, this.isolationLevel, implicit);
+    const tx = new Transaction(this.db.takeTransactionId(), this.isolationLevel, implicit);
     this.transaction = tx;
     return tx;
   }
 
   peekNextTransactionId(): number {
-    return this.nextTxId;
+    return this.db.peekNextTransactionId();
   }
 
   activeTransactionIds(): number[] {
-    return this.transaction?.isActive ? [this.transaction.id] : [];
+    return this.db.activeTransactions().map((tx) => tx.id);
   }
 
   statementIndex(): number {
-    return this.collected.length;
+    return this.db.stepCount();
+  }
+
+  waitsFor(txId: number): number[] {
+    return this.db.waitsFor(txId);
   }
 
   finishTransaction(state: 'committed' | 'rolled-back'): void {
-    if (this.transaction) this.transaction.state = state;
+    const finished = this.transaction;
+    if (finished) finished.state = state;
     this.transaction = null;
+    if (finished) this.db.wakeWaitersOf(finished.id);
   }
 
   emit(event: StepEvent): void {
-    this.collected.push({ event, snapshot: this.snapshot() });
+    this.db.record(this, event);
   }
 
-  snapshot(): EngineSnapshot {
+  snapshot(): SessionSnapshot {
     return {
-      tables: [...this.storages.values()].map((storage) => ({
-        table: storage.table,
-        indexes: this.indexSnapshots(storage),
-      })),
+      id: this.id,
+      name: this.name,
+      isolationLevel: this.isolationLevel,
       transaction: this.transaction
         ? {
             id: this.transaction.id,
@@ -122,28 +205,9 @@ export class Session implements ExecutionContext {
             undoRecordCount: this.transaction.undoNos.length,
           }
         : null,
-      isolationLevel: this.isolationLevel,
-      pageCapacity: this.pageCapacity,
-      redo: this.redoLog.state(),
-      undo: this.undoLog.all(),
-      locks: this.lockManager.held(),
       readView: this.transaction?.readView ?? null,
+      waitingForTxId: this.waitingForTxId,
+      pendingSql: this.pendingSql,
     };
-  }
-
-  private indexSnapshots(storage: TableStorage): IndexSnapshot[] {
-    const clustered: IndexSnapshot = {
-      indexId: CLUSTERED_INDEX_ID,
-      kind: 'clustered',
-      columns: primaryKeyColumns(storage.table),
-      tree: storage.clustered.tree.snapshot() as TreeSnapshot<unknown>,
-    };
-    const secondaries = storage.secondaries.map<IndexSnapshot>((index) => ({
-      indexId: index.name,
-      kind: 'secondary',
-      columns: index.def.columns,
-      tree: index.tree.snapshot() as TreeSnapshot<unknown>,
-    }));
-    return [clustered, ...secondaries];
   }
 }

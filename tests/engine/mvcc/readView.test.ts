@@ -3,7 +3,12 @@ import { UndoLog } from '../../../src/engine/logs/undoLog';
 import { createReadView, isVisible } from '../../../src/engine/mvcc/readView';
 import { visibleVersionOf } from '../../../src/engine/mvcc/versionChain';
 import type { ClusteredRecord } from '../../../src/engine/schema/record';
-import { Session } from '../../../src/engine/transaction/session';
+import { Database } from '../../../src/engine/transaction/database';
+import type { Session } from '../../../src/engine/transaction/session';
+
+function openDatabase(pageCapacity = 4): Session {
+  return new Database(pageCapacity).openSession();
+}
 
 function run(session: Session, sql: string) {
   const result = session.run(sql);
@@ -112,7 +117,7 @@ describe('version chain walk', () => {
 
 describe('read view lifetime per isolation level', () => {
   function sessionWithRow(isolation: string): Session {
-    const session = new Session(4);
+    const session = openDatabase(4);
     run(session, `SET TRANSACTION ISOLATION LEVEL ${isolation}`);
     run(session, 'CREATE TABLE t (id INT NOT NULL, v INT, PRIMARY KEY (id))');
     run(session, 'INSERT INTO t VALUES (1, 100)');

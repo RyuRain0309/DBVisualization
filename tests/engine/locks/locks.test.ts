@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { Lock } from '../../../src/engine/locks/types';
-import { Session } from '../../../src/engine/transaction/session';
+import { Database } from '../../../src/engine/transaction/database';
+import type { Session } from '../../../src/engine/transaction/session';
+
+function openDatabase(pageCapacity = 4): Session {
+  return new Database(pageCapacity).openSession();
+}
 
 function run(session: Session, sql: string) {
   const result = session.run(sql);
@@ -9,7 +14,7 @@ function run(session: Session, sql: string) {
 }
 
 function setup(isolation = 'REPEATABLE READ'): Session {
-  const session = new Session(4);
+  const session = openDatabase(4);
   run(session, `SET TRANSACTION ISOLATION LEVEL ${isolation}`);
   run(
     session,

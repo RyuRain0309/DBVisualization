@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { StepEvent } from '../../../src/engine/executor/events';
-import { Session } from '../../../src/engine/transaction/session';
+import { Database } from '../../../src/engine/transaction/database';
+import type { Session } from '../../../src/engine/transaction/session';
+
+function openDatabase(pageCapacity = 4): Session {
+  return new Database(pageCapacity).openSession();
+}
 
 function run(session: Session, sql: string): StepEvent[] {
   const result = session.run(sql);
@@ -9,7 +14,7 @@ function run(session: Session, sql: string): StepEvent[] {
 }
 
 function sessionWithTable(pageCapacity = 4): Session {
-  const session = new Session(pageCapacity);
+  const session = openDatabase(pageCapacity);
   run(
     session,
     `CREATE TABLE users (
@@ -32,7 +37,7 @@ function rowsOf(session: Session, sql: string) {
 describe('CREATE TABLE', () => {
   it('builds a clustered index plus one B+tree per secondary index', () => {
     const session = sessionWithTable();
-    const snapshot = session.snapshot();
+    const snapshot = session.db.snapshot();
 
     expect(snapshot.tables).toHaveLength(1);
     expect(snapshot.tables[0]!.indexes.map((i) => i.indexId)).toEqual(['PRIMARY', 'idx_email']);
@@ -40,12 +45,12 @@ describe('CREATE TABLE', () => {
   });
 
   it('falls back to a hidden row id when no primary key is declared', () => {
-    const session = new Session();
+    const session = openDatabase();
     const events = run(session, 'CREATE TABLE t (v INT)');
     const created = events.find((e) => e.type === 'table-created')!;
 
     expect(created.explanation).toContain('DB_ROW_ID');
-    expect(session.snapshot().tables[0]!.table.primaryKey.kind).toBe('hidden-row-id');
+    expect(session.db.snapshot().tables[0]!.table.primaryKey.kind).toBe('hidden-row-id');
   });
 });
 
@@ -190,7 +195,7 @@ describe('transactions', () => {
     run(session, 'ROLLBACK');
 
     expect(rowsOf(session, 'SELECT * FROM users')).toEqual([]);
-    const secondaryPages = session.snapshot().tables[0]!.indexes[1]!.tree.pages;
+    const secondaryPages = session.db.snapshot().tables[0]!.indexes[1]!.tree.pages;
     expect(secondaryPages.flatMap((page) => page.entries as unknown[])).toEqual([]);
   });
 

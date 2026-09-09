@@ -1,5 +1,5 @@
 import type { BTreeMutation, PageId, TreeSnapshot } from '../btree/types';
-import type { Lock } from '../locks/types';
+import type { Lock, LockRequest } from '../locks/types';
 import type { RedoLogRecord, RedoLogState } from '../logs/redoLog';
 import type { UndoLogRecord } from '../logs/undoLog';
 import type { ReadView } from '../mvcc/readView';
@@ -26,6 +26,9 @@ export type StepEventType =
   | 'purge'
   | 'lock-acquire'
   | 'lock-release'
+  | 'lock-wait'
+  | 'lock-granted'
+  | 'deadlock'
   | 'read-view-create'
   | 'visibility-check'
   | 'rows-returned'
@@ -60,6 +63,9 @@ export type StepEvent =
   | (BaseEvent & { type: 'purge'; primaryKey: KeyValue; tableName: string })
   | (BaseEvent & { type: 'lock-acquire'; lock: Lock })
   | (BaseEvent & { type: 'lock-release'; txId: number; locks: Lock[]; cause: 'COMMIT' | 'ROLLBACK' })
+  | (BaseEvent & { type: 'lock-wait'; blockerTxId: number; request: LockRequest })
+  | (BaseEvent & { type: 'lock-granted'; blockerTxId: number; sql: string })
+  | (BaseEvent & { type: 'deadlock'; victimTxId: number; cycle: number[] })
   | (BaseEvent & { type: 'read-view-create'; view: ReadView; policy: string })
   | (BaseEvent & {
       type: 'visibility-check';
@@ -91,19 +97,30 @@ export interface TransactionSnapshot {
   undoRecordCount: number;
 }
 
+export interface SessionSnapshot {
+  id: number;
+  name: string;
+  isolationLevel: IsolationLevel;
+  transaction: TransactionSnapshot | null;
+  readView: ReadView | null;
+  /** Set while a statement of this session is parked waiting for someone else's lock. */
+  waitingForTxId: number | null;
+  pendingSql: string | null;
+}
+
 export interface EngineSnapshot {
   tables: TableSnapshot[];
-  transaction: TransactionSnapshot | null;
-  isolationLevel: IsolationLevel;
+  sessions: SessionSnapshot[];
   pageCapacity: number;
   redo: RedoLogState;
   undo: UndoLogRecord[];
   locks: Lock[];
-  readView: ReadView | null;
 }
 
 /** One StepEvent plus the state of the whole engine right after it happened. */
 export interface ExecutionStep {
   event: StepEvent;
+  sessionId: number;
+  sessionName: string;
   snapshot: EngineSnapshot;
 }
