@@ -3,7 +3,7 @@ import type { IndexSnapshot } from '../../engine/executor/events';
 import { layoutTree } from './layout';
 import { PageNode } from './PageNode';
 import { LeafLink, TreeEdge } from './TreeEdge';
-import { indexHint, indexTitle, toPageBoxes } from './treeModel';
+import { indexHint, indexTitle, toPageBoxes, treeStats } from './treeModel';
 import type { Highlight } from './highlight';
 import type { Lock } from '../../engine/locks/types';
 import { lockMarksFor } from '../lock-panel/lockMarks';
@@ -22,14 +22,40 @@ export function BTreeCanvas({ index, highlight, locks }: Props) {
     const boxes = toPageBoxes(index.tree);
     return layoutTree(boxes, index.tree.rootId);
   }, [index]);
+  const stats = useMemo(() => treeStats(index.tree), [index]);
 
   const active = highlight.indexId === index.indexId;
+  const clustered = index.kind === 'clustered';
 
   return (
-    <section className="tree">
+    <section className={`tree tree--${index.kind} ${active ? 'tree--active' : ''}`}>
       <header className="tree__header">
-        <h3>{indexTitle(index)}</h3>
+        <div className="tree__title">
+          <span className={`tree__kind tree__kind--${index.kind}`}>
+            {clustered ? '클러스터드' : '세컨더리'}
+          </span>
+          <h3>{indexTitle(index)}</h3>
+        </div>
         <p>{indexHint(index)}</p>
+
+        <dl className="tree__stats">
+          <div>
+            <dt>페이지</dt>
+            <dd>{stats.pages}</dd>
+          </div>
+          <div>
+            <dt>높이</dt>
+            <dd>{stats.height}</dd>
+          </div>
+          <div>
+            <dt>리프 엔트리</dt>
+            <dd>{stats.leafEntries}</dd>
+          </div>
+          <div>
+            <dt>리프에 담긴 것</dt>
+            <dd>{clustered ? '행 전체 + 숨은 시스템 컬럼' : '인덱스 키 + PK'}</dd>
+          </div>
+        </dl>
       </header>
 
       {layout.pages.length === 0 ? (

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BTreeCanvas } from '../btree-view/BTreeCanvas';
+import { TreeExplorer } from '../btree-view/TreeExplorer';
 import { highlightOf, type Highlight } from '../btree-view/highlight';
 import { ExplanationFeed } from '../explanation/ExplanationFeed';
 import { IsolationEffectExplainer } from '../isolation/IsolationEffectExplainer';
@@ -122,15 +123,21 @@ function TabContent({ tab, snapshot, highlight }: TabContentProps) {
     );
   }
 
-  if (tab === 'tree' || tab === 'locks') {
+  if (tab === 'tree') {
     return (
-      <div className={tab === 'locks' ? 'pane pane--locks' : 'pane'}>
-        {tab === 'locks' && (
-          <div className="pane__side">
-            <LockTable locks={snapshot.locks} sessions={snapshot.sessions} />
-            <LockLegend />
-          </div>
-        )}
+      <div className="pane">
+        <TreeExplorer snapshot={snapshot} highlight={highlight} />
+      </div>
+    );
+  }
+
+  if (tab === 'locks') {
+    return (
+      <div className="pane pane--locks">
+        <div className="pane__side">
+          <LockTable locks={snapshot.locks} sessions={snapshot.sessions} />
+          <LockLegend />
+        </div>
         <div className="pane__main">
           <Trees snapshot={snapshot} highlight={highlight} />
         </div>

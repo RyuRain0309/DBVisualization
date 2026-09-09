@@ -87,12 +87,28 @@ export function toPageBoxes(snapshot: TreeSnapshot<unknown>): PageBox[] {
 
 export function indexTitle(index: IndexSnapshot): string {
   return index.kind === 'clustered'
-    ? `클러스터드 인덱스 (PRIMARY: ${index.columns.join(', ')})`
-    : `세컨더리 인덱스 ${index.indexId} (${index.columns.join(', ')})`;
+    ? `PRIMARY (${index.columns.join(', ')})`
+    : `${index.indexId} (${index.columns.join(', ')})`;
+}
+
+export interface TreeStats {
+  pages: number;
+  /** Number of levels from root to leaf; 0 when the index is empty. */
+  height: number;
+  leafEntries: number;
+}
+
+export function treeStats(snapshot: TreeSnapshot<unknown>): TreeStats {
+  const leaves = snapshot.pages.filter((page) => page.kind === 'leaf');
+  return {
+    pages: snapshot.pages.length,
+    height: snapshot.pages.length === 0 ? 0 : Math.max(...snapshot.pages.map((p) => p.level)) + 1,
+    leafEntries: leaves.reduce((sum, page) => sum + page.entries.length, 0),
+  };
 }
 
 export function indexHint(index: IndexSnapshot): string {
   return index.kind === 'clustered'
-    ? '리프 페이지가 행 전체를 담는다. 클러스터드 인덱스가 곧 테이블이다.'
-    : '리프 엔트리는 PK 만 담는다. 인덱스에 없는 컬럼을 읽으려면 클러스터드 인덱스를 한 번 더 타야 한다.';
+    ? '리프 페이지에 행 전체가 들어간다. 클러스터드 인덱스가 곧 테이블이라 이 트리 밖에 따로 데이터가 없다.'
+    : '리프에는 인덱스 컬럼 뒤에 PK 를 붙인 키만 들어간다. 인덱스에 없는 컬럼이 필요하면 그 PK 로 클러스터드 인덱스를 한 번 더 타야 한다 (bookmark lookup).';
 }
