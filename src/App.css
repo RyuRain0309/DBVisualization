@@ -973,26 +973,20 @@ body {
 }
 
 .welcome__mark {
-  width: 72px;
-  height: 56px;
+  width: 132px;
+  height: 99px;
 }
 
-.welcome__mark-node {
-  fill: var(--accent-soft);
-  stroke: var(--accent);
-  stroke-width: 1.5;
+.dolphin__body {
+  fill: var(--accent);
 }
 
-.welcome__mark-leaf {
-  fill: var(--leaf);
-  stroke: var(--accent);
-  stroke-width: 1.5;
+.dolphin__fin {
+  fill: #1d4ed8;
 }
 
-.welcome__mark-edge {
-  fill: none;
-  stroke: var(--border-strong);
-  stroke-width: 1.5;
+.dolphin__eye {
+  fill: #ffffff;
 }
 
 .welcome__title {
