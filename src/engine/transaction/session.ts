@@ -87,7 +87,6 @@ export class Session implements ExecutionContext {
   checkpoint(): RunResult {
     this.db.beginCollecting();
     runCheckpoint(this);
-    this.db.checkpointLsn = this.redoLog.state().flushedUpToLsn;
     return { steps: this.db.collectedSteps(), error: null };
   }
 
@@ -193,6 +192,10 @@ export class Session implements ExecutionContext {
 
   statementIndex(): number {
     return this.db.stepCount();
+  }
+
+  setCheckpointLsn(lsn: number): void {
+    this.db.checkpointLsn = lsn;
   }
 
   waitsFor(txId: number): number[] {

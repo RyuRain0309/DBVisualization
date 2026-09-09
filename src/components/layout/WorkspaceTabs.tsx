@@ -1,6 +1,6 @@
 import type { EngineSnapshot, StepEvent } from '../../engine/executor/events';
 
-export type WorkspaceTab = 'console' | 'tree' | 'locks' | 'logs' | 'mvcc' | 'feed';
+export type WorkspaceTab = 'console' | 'tree' | 'locks' | 'logs' | 'arch' | 'mvcc' | 'feed';
 
 export interface TabDefinition {
   id: WorkspaceTab;
@@ -20,6 +20,10 @@ export function tabForEvent(event: StepEvent | null): WorkspaceTab | null {
     case 'lock-acquire':
     case 'lock-release':
       return 'locks';
+    case 'page-load':
+    case 'page-flush':
+    case 'checkpoint':
+      return 'arch';
     case 'redo-append':
     case 'redo-flush':
     case 'undo-append':
@@ -77,6 +81,12 @@ export function tabDefinitions(snapshot: EngineSnapshot): TabDefinition[] {
       label: 'Redo / Undo',
       hint: 'WAL 순서와 버전 체인',
       badge: pendingRedo > 0 ? `미flush ${pendingRedo}` : undefined,
+    },
+    {
+      id: 'arch',
+      label: '아키텍처',
+      hint: '버퍼 풀 · 로그 · 테이블스페이스 · 파일',
+      badge: snapshot.bufferPool.dirtyCount > 0 ? `더티 ${snapshot.bufferPool.dirtyCount}` : undefined,
     },
     {
       id: 'mvcc',

@@ -40,6 +40,7 @@ interface EngineState {
   start: () => void;
   run: (sessionId: number) => void;
   runSql: (sessionId: number, sql: string) => void;
+  checkpoint: () => void;
   setSql: (sessionId: number, sql: string) => void;
   addConsole: () => void;
   removeConsole: (sessionId: number) => void;
@@ -109,6 +110,18 @@ export const useEngineStore = create<EngineState>((set, get) => ({
         entry.sessionId === sessionId ? { ...entry, error: result.error } : entry,
       ),
     });
+  },
+
+  /** Flushes dirty pages, the way a background checkpoint would. */
+  checkpoint: () => {
+    const { sessions, steps } = get();
+    const session = sessions[0];
+    if (!session) return;
+
+    const result = session.checkpoint();
+    if (result.steps.length === 0) return;
+    const merged = [...steps, ...result.steps];
+    set({ steps: merged, cursor: merged.length - 1 });
   },
 
   addConsole: () => {

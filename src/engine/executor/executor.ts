@@ -73,6 +73,8 @@ export interface ExecutionContext {
   /** Other transactions still running when a read view is taken. */
   activeTransactionIds(): number[];
   statementIndex(): number;
+  /** Advances the checkpoint LSN once dirty pages are on disk. */
+  setCheckpointLsn(lsn: number): void;
   /** Transactions the given one is (transitively) waiting for, used for deadlock detection. */
   waitsFor?(txId: number): number[];
   finishTransaction(state: 'committed' | 'rolled-back'): void;
@@ -942,6 +944,7 @@ export function runCheckpoint(ctx: ExecutionContext): void {
   }
 
   const lsn = flushFrames(ctx, dirty);
+  ctx.setCheckpointLsn(lsn);
   ctx.emit({
     type: 'checkpoint',
     flushedPages: dirty.length,

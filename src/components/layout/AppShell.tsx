@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { ArchitectureView } from '../architecture/ArchitectureView';
 import { BTreeCanvas } from '../btree-view/BTreeCanvas';
 import { TreeExplorer } from '../btree-view/TreeExplorer';
 import { highlightOf, type Highlight } from '../btree-view/highlight';
@@ -141,6 +142,14 @@ function TabContent({ tab, snapshot, highlight }: TabContentProps) {
         <div className="pane__main">
           <Trees snapshot={snapshot} highlight={highlight} />
         </div>
+      </div>
+    );
+  }
+
+  if (tab === 'arch') {
+    return (
+      <div className="pane">
+        <ArchitectureView snapshot={snapshot} />
       </div>
     );
   }
