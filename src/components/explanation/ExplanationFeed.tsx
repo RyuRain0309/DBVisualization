@@ -22,6 +22,9 @@ const LABELS: Record<StepEvent['type'], string> = {
   'visibility-check': 'MVCC',
   'lock-acquire': '락',
   'lock-release': '락',
+  'lock-wait': '대기',
+  'lock-granted': '재개',
+  deadlock: '데드락',
   'rows-returned': '결과',
   note: '설명',
 };
@@ -59,6 +62,7 @@ export function ExplanationFeed() {
               <span className={`feed__tag feed__tag--${step.event.type}`}>
                 {LABELS[step.event.type]}
               </span>
+              <span className="feed__session">{step.sessionName}</span>
               <span className="feed__text">{step.event.explanation}</span>
             </li>
           );

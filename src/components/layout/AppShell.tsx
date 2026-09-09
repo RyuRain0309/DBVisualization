@@ -1,16 +1,17 @@
 import { useMemo, useState } from 'react';
 import { BTreeCanvas } from '../btree-view/BTreeCanvas';
-import { highlightOf } from '../btree-view/highlight';
+import { highlightOf, type Highlight } from '../btree-view/highlight';
 import { ExplanationFeed } from '../explanation/ExplanationFeed';
 import { IsolationEffectExplainer } from '../isolation/IsolationEffectExplainer';
-import { IsolationLevelSelector } from '../isolation/IsolationLevelSelector';
 import { LockLegend } from '../lock-panel/LockLegend';
 import { LockTable } from '../lock-panel/LockTable';
 import { RedoLogPanel } from '../log-panel/RedoLogPanel';
 import { UndoLogPanel } from '../log-panel/UndoLogPanel';
+import { Welcome } from '../onboarding/Welcome';
+import { ConsoleWorkspace } from '../sql-console/ConsoleWorkspace';
 import { ResultTable } from '../sql-console/ResultTable';
-import { SqlInput } from '../sql-console/SqlInput';
 import { StepControls } from '../sql-console/StepControls';
+import { SessionOverview } from '../session/SessionOverview';
 import { useEngineStore } from '../../store/engineStore';
 import {
   WorkspaceTabs,
@@ -19,28 +20,32 @@ import {
   type WorkspaceTab,
 } from './WorkspaceTabs';
 import type { EngineSnapshot } from '../../engine/executor/events';
-import type { Highlight } from '../btree-view/highlight';
 
 const CAPACITIES = [3, 4, 5, 6, 8];
 
 export function AppShell() {
+  const started = useEngineStore((state) => state.started);
   const steps = useEngineStore((state) => state.steps);
   const cursor = useEngineStore((state) => state.cursor);
-  const session = useEngineStore((state) => state.session);
+  const database = useEngineStore((state) => state.database);
   // Recomputing this on every render would hand React a new object each time, so it is memoised
   // on the values that actually decide which snapshot is on screen.
   const snapshot = useMemo(
-    () => (cursor >= 0 && steps[cursor] ? steps[cursor]!.snapshot : session.snapshot()),
-    [steps, cursor, session],
+    () => (cursor >= 0 && steps[cursor] ? steps[cursor]!.snapshot : database.snapshot()),
+    [steps, cursor, database],
   );
   const pageCapacity = useEngineStore((state) => state.pageCapacity);
   const setPageCapacity = useEngineStore((state) => state.setPageCapacity);
   const reset = useEngineStore((state) => state.reset);
 
-  const [tab, setTab] = useState<WorkspaceTab>('tree');
+  const [tab, setTab] = useState<WorkspaceTab>('console');
   const currentEvent = steps[cursor]?.event ?? null;
   const highlight = highlightOf(currentEvent);
-  const transaction = snapshot.transaction;
+
+  if (!started) return <Welcome />;
+
+  const waitingSessions = snapshot.sessions.filter((session) => session.waitingForTxId !== null);
+  const openTransactions = snapshot.sessions.filter((session) => session.transaction !== null);
 
   return (
     <div className="shell">
@@ -71,16 +76,12 @@ export function AppShell() {
             </span>
           </label>
 
-          <IsolationLevelSelector
-            level={snapshot.isolationLevel}
-            transactionOpen={transaction !== null}
-          />
-
-          <span className={`badge ${transaction ? 'badge--active' : ''}`}>
-            {transaction
-              ? `TX ${transaction.id} 진행 중${transaction.implicit ? ' (autocommit)' : ''}`
-              : '트랜잭션 없음'}
+          <span className={`badge ${openTransactions.length > 0 ? 'badge--active' : ''}`}>
+            열린 트랜잭션 {openTransactions.length}
           </span>
+          {waitingSessions.length > 0 && (
+            <span className="badge badge--wait">대기 {waitingSessions.length}</span>
+          )}
 
           <button type="button" className="button" onClick={reset}>
             초기화
@@ -88,23 +89,18 @@ export function AppShell() {
         </div>
       </header>
 
-      <main className="layout">
-        <aside className="sidebar">
-          <SqlInput />
-          <StepControls />
-        </aside>
+      <StepControls />
 
-        <section className="workspace">
-          <WorkspaceTabs
-            tabs={tabDefinitions(snapshot)}
-            active={tab}
-            flagged={tabForEvent(currentEvent)}
-            onSelect={setTab}
-          />
-          <div className="workspace__body">
-            <TabContent tab={tab} snapshot={snapshot} highlight={highlight} />
-          </div>
-        </section>
+      <main className="workspace">
+        <WorkspaceTabs
+          tabs={tabDefinitions(snapshot)}
+          active={tab}
+          flagged={tabForEvent(currentEvent)}
+          onSelect={setTab}
+        />
+        <div className="workspace__body">
+          <TabContent tab={tab} snapshot={snapshot} highlight={highlight} />
+        </div>
       </main>
     </div>
   );
@@ -117,12 +113,21 @@ interface TabContentProps {
 }
 
 function TabContent({ tab, snapshot, highlight }: TabContentProps) {
+  if (tab === 'console') {
+    return (
+      <div className="pane pane--console">
+        <ConsoleWorkspace snapshot={snapshot} />
+        <SessionOverview snapshot={snapshot} />
+      </div>
+    );
+  }
+
   if (tab === 'tree' || tab === 'locks') {
     return (
       <div className={tab === 'locks' ? 'pane pane--locks' : 'pane'}>
         {tab === 'locks' && (
           <div className="pane__side">
-            <LockTable locks={snapshot.locks} />
+            <LockTable locks={snapshot.locks} sessions={snapshot.sessions} />
             <LockLegend />
           </div>
         )}
@@ -145,7 +150,14 @@ function TabContent({ tab, snapshot, highlight }: TabContentProps) {
   if (tab === 'mvcc') {
     return (
       <div className="pane pane--split">
-        <IsolationEffectExplainer level={snapshot.isolationLevel} readView={snapshot.readView} />
+        {snapshot.sessions.map((session) => (
+          <IsolationEffectExplainer
+            key={session.id}
+            title={session.name}
+            level={session.isolationLevel}
+            readView={session.readView}
+          />
+        ))}
         <UndoLogPanel undo={snapshot.undo} />
       </div>
     );

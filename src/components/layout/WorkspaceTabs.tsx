@@ -1,6 +1,6 @@
 import type { EngineSnapshot, StepEvent } from '../../engine/executor/events';
 
-export type WorkspaceTab = 'tree' | 'locks' | 'logs' | 'mvcc' | 'feed';
+export type WorkspaceTab = 'console' | 'tree' | 'locks' | 'logs' | 'mvcc' | 'feed';
 
 export interface TabDefinition {
   id: WorkspaceTab;
@@ -32,6 +32,14 @@ export function tabForEvent(event: StepEvent | null): WorkspaceTab | null {
       return 'mvcc';
     case 'rows-returned':
       return 'feed';
+    case 'lock-wait':
+    case 'lock-granted':
+    case 'deadlock':
+      return 'locks';
+    case 'transaction-begin':
+    case 'transaction-commit':
+    case 'transaction-rollback':
+      return 'console';
     default:
       return null;
   }
@@ -42,7 +50,16 @@ export function tabDefinitions(snapshot: EngineSnapshot): TabDefinition[] {
     (record) => record.lsn > snapshot.redo.flushedUpToLsn,
   ).length;
 
+  const waiting = snapshot.sessions.filter((session) => session.waitingForTxId !== null).length;
+
   return [
+    {
+      id: 'console',
+      label: 'SQL 콘솔',
+      hint: '세션별 콘솔에서 문장을 실행한다',
+      badge:
+        waiting > 0 ? `대기 ${waiting}` : `${snapshot.sessions.length} 세션`,
+    },
     {
       id: 'tree',
       label: 'B+tree',
@@ -65,7 +82,7 @@ export function tabDefinitions(snapshot: EngineSnapshot): TabDefinition[] {
       id: 'mvcc',
       label: '격리수준 · MVCC',
       hint: 'read view 수명과 가시성',
-      badge: snapshot.readView ? 'read view' : undefined,
+      badge: snapshot.sessions.some((session) => session.readView) ? 'read view' : undefined,
     },
     {
       id: 'feed',

@@ -11,15 +11,16 @@ const POLICY_LABEL: Record<string, string> = {
 interface Props {
   level: IsolationLevel;
   readView: ReadView | null;
+  title?: string;
 }
 
-export function IsolationEffectExplainer({ level, readView }: Props) {
+export function IsolationEffectExplainer({ level, readView, title }: Props) {
   const behavior = ISOLATION_BEHAVIOR[level];
 
   return (
     <section className="panel">
       <header className="panel__header">
-        <h2>격리수준 {level}</h2>
+        <h2>{title ? `${title} · ${level}` : `격리수준 ${level}`}</h2>
       </header>
 
       <p className="panel__note">{behavior.description}</p>

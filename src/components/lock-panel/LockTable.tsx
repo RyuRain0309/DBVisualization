@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { describeLockTarget } from '../../engine/locks/lockManager';
+import type { SessionSnapshot } from '../../engine/executor/events';
 import type { Lock } from '../../engine/locks/types';
 
 const GRANULARITY_LABEL: Record<string, string> = {
@@ -11,7 +12,16 @@ const GRANULARITY_LABEL: Record<string, string> = {
   AUTO_INC: 'AUTO_INC',
 };
 
-export function LockTable({ locks }: { locks: Lock[] }) {
+export function LockTable({
+  locks,
+  sessions,
+}: {
+  locks: Lock[];
+  sessions: SessionSnapshot[];
+}) {
+  const ownerOf = (txId: number) =>
+    sessions.find((session) => session.transaction?.id === txId)?.name ?? `TX ${txId}`;
+
   return (
     <section className="panel">
       <header className="panel__header">
@@ -40,7 +50,9 @@ export function LockTable({ locks }: { locks: Lock[] }) {
                   {GRANULARITY_LABEL[lock.target.granularity]}
                 </span>
                 <span className="lock-list__target">{describeLockTarget(lock.target)}</span>
-                <span className="lock-list__tx">TX {lock.txId}</span>
+                <span className="lock-list__tx">
+                  {ownerOf(lock.txId)} · TX {lock.txId}
+                </span>
               </motion.li>
             ))}
           </AnimatePresence>
