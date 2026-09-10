@@ -55,7 +55,7 @@ export function RecordChapter() {
     <>
       <p className="doc-lead">
         <code>INSERT INTO users VALUES (10, 'a', 'a@x.com')</code> 를 실행하면 페이지 안에 이런 모양의
-        바이트 덩어리가 하나 생긴다. 내가 적은 값 말고도, 트랜잭션이 쓰라고 붙는 <strong>숨은 컬럼</strong>
+        바이트 덩어리가 하나 생긴다. 내가 적은 값 말고도, 트랜잭션이 쓰라고 붙는 <strong>숨은 컬럼</strong>{' '}
         두 개가 함께 들어간다.
       </p>
 

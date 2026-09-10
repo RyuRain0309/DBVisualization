@@ -136,7 +136,7 @@ function IndexPairDiagram() {
 
       <path className="pairmap__sibling" d="M125 137 L145 137" />
       <path className="pairmap__sibling" d="M425 137 L445 137" />
-      <text className="pairmap__hint" x="135" y="182" textAnchor="middle">
+      <text className="pairmap__hint" x="202" y="180" textAnchor="middle">
         리프끼리 양방향 링크 — 범위 스캔
       </text>
 
