@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import { ComponentsChapter } from './ComponentsChapter';
+import { IndexChapter } from './IndexChapter';
 import { PageChapter } from './PageChapter';
 import { RecordChapter } from './RecordChapter';
 import { StorageChapter } from './StorageChapter';
@@ -36,5 +37,11 @@ export const CHAPTERS: Chapter[] = [
     title: '행 하나의 생김새',
     blurb: '레코드 바이트 구성과 숨은 컬럼, 그리고 버전 체인',
     Body: RecordChapter,
+  },
+  {
+    id: 'index',
+    title: '페이지가 트리가 될 때',
+    blurb: '클러스터드 · 세컨더리 인덱스와 탐색 경로',
+    Body: IndexChapter,
   },
 ];

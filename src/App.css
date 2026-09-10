@@ -2308,3 +2308,66 @@ body {
   color: var(--mvcc);
   font-family: var(--mono);
 }
+
+/* docs — clustered vs secondary index diagram */
+.pairmap {
+  width: 100%;
+  height: auto;
+}
+
+.pairmap__node {
+  fill: var(--internal);
+  stroke: var(--border-strong);
+}
+
+.pairmap__node--secondary {
+  fill: var(--internal-secondary);
+}
+
+.pairmap__leaf {
+  fill: var(--leaf);
+  stroke: var(--border-strong);
+}
+
+.pairmap__leaf--secondary {
+  fill: var(--leaf-secondary);
+}
+
+.pairmap__edge {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+  fill: none;
+}
+
+.pairmap__sibling {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+}
+
+.pairmap__lookup {
+  fill: none;
+  stroke: var(--secondary-accent);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.pairmap__text {
+  fill: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.pairmap__title {
+  fill: var(--text-dim);
+  font-size: 11px;
+}
+
+.pairmap__hint {
+  fill: var(--text-dim);
+  font-size: 10.5px;
+}
+
+.pairmap__hint--secondary {
+  fill: var(--secondary-accent);
+}
