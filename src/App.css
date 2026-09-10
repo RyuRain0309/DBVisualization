@@ -2014,3 +2014,85 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* docs — nested storage units */
+.nest__level {
+  position: relative;
+  padding: 26px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.nest__level p {
+  margin: 8px 0 0;
+  color: var(--text-dim);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.nest__level .nest__level {
+  margin-top: 10px;
+}
+
+.nest__level--file {
+  background: var(--bg-raised);
+}
+
+.nest__level--segment {
+  background: var(--bg-panel);
+}
+
+.nest__level--extent {
+  background: var(--internal);
+  border-color: var(--border-strong);
+}
+
+.nest__level--page {
+  background: var(--leaf);
+}
+
+.nest__tag {
+  position: absolute;
+  top: 7px;
+  left: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.nest__tag code {
+  font-family: var(--mono);
+  font-weight: 400;
+}
+
+.nest__pages {
+  display: grid;
+  grid-template-columns: repeat(32, 1fr);
+  gap: 2px;
+}
+
+.nest__page {
+  height: 12px;
+  border-radius: 2px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+}
+
+.nest__page--focus {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.nest__rows {
+  display: grid;
+  gap: 3px;
+}
+
+.nest__rows span {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-panel);
+  font-family: var(--mono);
+  font-size: 11px;
+}
