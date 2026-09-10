@@ -2194,3 +2194,117 @@ body {
   fill: var(--text-dim);
   font-size: 11px;
 }
+
+/* docs — record layout */
+.rec {
+  display: grid;
+  gap: 3px;
+}
+
+.rec__field {
+  display: grid;
+  grid-template-columns: 92px 132px 128px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+}
+
+.rec__field b {
+  font-size: 12.5px;
+}
+
+.rec__field code {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.rec__tone {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  text-align: center;
+  background: var(--bg-raised);
+  color: var(--text-dim);
+}
+
+.rec__field--meta {
+  background: var(--bg-raised);
+}
+
+.rec__field--header .rec__tone {
+  background: var(--internal);
+}
+
+.rec__field--hidden {
+  background: rgba(124, 58, 237, 0.07);
+  border-color: rgba(124, 58, 237, 0.3);
+}
+
+.rec__field--hidden .rec__tone {
+  background: rgba(124, 58, 237, 0.15);
+  color: var(--mvcc);
+}
+
+.rec__field--value {
+  background: var(--leaf);
+}
+
+.rec__note {
+  color: var(--text-dim);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* docs — version chain */
+.chain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chain__node {
+  flex: 1 1 150px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-panel);
+}
+
+.chain__node--current {
+  border-color: var(--mvcc);
+  background: rgba(124, 58, 237, 0.07);
+}
+
+.chain__node--old {
+  opacity: 0.6;
+}
+
+.chain__tag {
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.chain__node code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+
+.chain__node em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.chain__arrow {
+  flex: none;
+  font-size: 11px;
+  color: var(--mvcc);
+  font-family: var(--mono);
+}

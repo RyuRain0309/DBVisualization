@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { ComponentsChapter } from './ComponentsChapter';
 import { PageChapter } from './PageChapter';
+import { RecordChapter } from './RecordChapter';
 import { StorageChapter } from './StorageChapter';
 
 export interface Chapter {
@@ -29,5 +30,11 @@ export const CHAPTERS: Chapter[] = [
     title: '페이지 한 장의 안쪽',
     blurb: '헤더 · 레코드 · 디렉터리, 그리고 분할과 병합',
     Body: PageChapter,
+  },
+  {
+    id: 'record',
+    title: '행 하나의 생김새',
+    blurb: '레코드 바이트 구성과 숨은 컬럼, 그리고 버전 체인',
+    Body: RecordChapter,
   },
 ];
