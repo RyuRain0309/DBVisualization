@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ArchitectureView } from '../architecture/ArchitectureView';
+import { DocsView } from '../docs/DocsView';
 import { BTreeCanvas } from '../btree-view/BTreeCanvas';
 import { TreeExplorer } from '../btree-view/TreeExplorer';
 import { highlightOf, type Highlight } from '../btree-view/highlight';
@@ -26,7 +27,7 @@ import type { EngineSnapshot } from '../../engine/executor/events';
 const CAPACITIES = [3, 4, 5, 6, 8];
 
 export function AppShell() {
-  const started = useEngineStore((state) => state.started);
+  const view = useEngineStore((state) => state.view);
   const steps = useEngineStore((state) => state.steps);
   const cursor = useEngineStore((state) => state.cursor);
   const database = useEngineStore((state) => state.database);
@@ -44,7 +45,8 @@ export function AppShell() {
   const currentEvent = steps[cursor]?.event ?? null;
   const highlight = highlightOf(currentEvent);
 
-  if (!started) return <Welcome />;
+  if (view === 'docs') return <DocsView />;
+  if (view === 'welcome') return <Welcome />;
 
   const waitingSessions = snapshot.sessions.filter((session) => session.waitingForTxId !== null);
   const openTransactions = snapshot.sessions.filter((session) => session.transaction !== null);
