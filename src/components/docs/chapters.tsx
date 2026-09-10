@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import { ComponentsChapter } from './ComponentsChapter';
+import { PageChapter } from './PageChapter';
 import { StorageChapter } from './StorageChapter';
 
 export interface Chapter {
@@ -22,5 +23,11 @@ export const CHAPTERS: Chapter[] = [
     title: '데이터가 놓이는 자리',
     blurb: '파일 → 세그먼트 → 익스텐트 → 페이지 → 행',
     Body: StorageChapter,
+  },
+  {
+    id: 'page',
+    title: '페이지 한 장의 안쪽',
+    blurb: '헤더 · 레코드 · 디렉터리, 그리고 분할과 병합',
+    Body: PageChapter,
   },
 ];
