@@ -69,7 +69,7 @@ export function ComponentsChapter() {
         </div>
       </Figure>
 
-      <Block title="두 벌의 로그가 따로 있는 이유">
+      <Block title="redo · undo · doublewrite 의 차이">
         <p>
           redo 와 undo 는 이름이 비슷하지만 방향이 반대고 손님도 다르다.
         </p>
@@ -100,7 +100,7 @@ export function ComponentsChapter() {
         />
       </Block>
 
-      <Block title="변경 하나가 지나가는 순서">
+      <Block title="변경이 처리되는 순서">
         <ol className="doc-steps">
           <li>
             <b>페이지 확보</b> — 대상 페이지가 버퍼 풀에 없으면 디스크에서 읽어 올린다.

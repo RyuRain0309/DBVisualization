@@ -48,7 +48,7 @@ export function StorageChapter() {
         </div>
       </Figure>
 
-      <Block title="각 단위가 존재하는 이유">
+      <Block title="각 저장 단위의 역할">
         <Roles
           rows={[
             [

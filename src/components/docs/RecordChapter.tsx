@@ -72,7 +72,7 @@ export function RecordChapter() {
         </div>
       </Figure>
 
-      <Block title="숨은 컬럼 둘이 하는 일">
+      <Block title="숨은 컬럼의 역할">
         <p>
           <code>DB_ROLL_PTR</code> 는 이 행의 <b>직전 버전</b>이 든 undo 레코드를 가리킨다. 그 undo
           레코드에도 자기 이전 버전을 가리키는 포인터가 있어서, 행 하나가 시간순 사슬을 이룬다. 읽는
@@ -109,7 +109,7 @@ export function RecordChapter() {
         </p>
       </Block>
 
-      <Block title="세컨더리 인덱스 레코드는 더 짧다">
+      <Block title="세컨더리 인덱스 레코드 구성">
         <p>
           세컨더리 인덱스 리프에는 <b>인덱스 키 + PK 값</b>만 들어간다. 숨은 컬럼도 없다. 대신 값이
           최신인지 확실치 않을 때 PK 로 클러스터드 인덱스를 다시 찾아가 확인한다. PK 가 길면 모든
@@ -121,7 +121,7 @@ export function RecordChapter() {
         </p>
       </Block>
 
-      <Block title="한 행이 페이지보다 클 때">
+      <Block title="긴 컬럼과 오버플로 페이지">
         <p>
           긴 TEXT · BLOB · VARCHAR 은 페이지 안에 다 못 들어간다. 행이 페이지 절반을 넘으면 긴 컬럼부터
           <b> 오버플로 페이지</b>로 옮기고, 원래 자리엔 20바이트 포인터만 남긴다. DYNAMIC 행 포맷은 값을

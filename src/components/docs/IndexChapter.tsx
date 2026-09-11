@@ -14,7 +14,7 @@ export function IndexChapter() {
         <IndexPairDiagram />
       </Figure>
 
-      <Block title="두 인덱스가 다른 점">
+      <Block title="클러스터드 · 세컨더리 인덱스 비교">
         <Roles
           rows={[
             [
@@ -42,7 +42,7 @@ export function IndexChapter() {
         />
       </Block>
 
-      <Block title="한 번 찾는 데 드는 일">
+      <Block title="인덱스 탐색 경로">
         <ol className="doc-steps">
           <li>
             <b>루트 페이지</b> — 인덱스마다 루트 페이지 번호는 고정이라 바로 찾아간다. 버퍼 풀에 거의

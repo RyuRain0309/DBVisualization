@@ -69,7 +69,7 @@ export function PageChapter() {
         </div>
       </Figure>
 
-      <Block title="순서는 링크가 만든다">
+      <Block title="레코드 순서와 next_record 링크">
         <p>
           레코드는 들어온 순서대로 빈 자리에 쌓인다. 대신 레코드마다 <b>다음 레코드까지의 거리</b>를
           들고 있어서, infimum 에서 시작해 링크를 따라가면 키 순서대로 지나가게 된다. 그래서 가운데
@@ -86,7 +86,7 @@ export function PageChapter() {
         </p>
       </Block>
 
-      <Block title="가득 차면 나뉘고, 비면 합쳐진다">
+      <Block title="페이지 분할과 병합">
         <p>
           빈 공간이 모자란데 삽입이 들어오면 페이지가 <b>분할</b>된다. 새 페이지를 하나 만들고 절반을
           옮긴 뒤, 부모 페이지에 새 이정표를 넣는다. 반대로 삭제가 쌓여 사용량이 기준(기본 50%,{' '}
