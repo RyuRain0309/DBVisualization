@@ -1,48 +1,74 @@
+import { useState } from 'react';
 import { Block, Figure, Note } from './parts';
 
-interface Band {
+interface Zone {
+  id: string;
   name: string;
   size: string;
   role: string;
-  tone?: 'head' | 'rows' | 'free' | 'dir';
+  /** Rough share of the 16KB page, so the drawing reads like a page and not a list. */
+  grow: number;
+  tone: 'head' | 'bound' | 'rows' | 'free' | 'dir';
+  arrow?: string;
 }
 
-const BANDS: Band[] = [
+const ZONES: Zone[] = [
   {
+    id: 'file-header',
     name: 'File Header',
     size: '38B',
     role: '페이지 번호와 종류, 체크섬, 마지막으로 바뀐 LSN, 그리고 같은 레벨의 앞·뒤 페이지 번호',
+    grow: 0,
     tone: 'head',
   },
   {
+    id: 'page-header',
     name: 'Page Header',
     size: '56B',
     role: '레코드 수, 슬롯 수, 빈 공간이 시작되는 위치, 삭제된 레코드 목록, 이 페이지의 트리 레벨',
+    grow: 0,
     tone: 'head',
   },
   {
+    id: 'bounds',
     name: 'Infimum · Supremum',
     size: '26B',
     role: '페이지의 논리적 양 끝. 실제 데이터는 없지만 링크의 시작과 끝이고, 갭 락이 걸리는 자리이기도 하다',
-    tone: 'head',
+    grow: 0,
+    tone: 'bound',
   },
   {
+    id: 'records',
     name: 'User Records',
     size: '가변',
-    role: '실제 행(리프) 또는 자식 페이지로 가는 이정표(논리프). 삽입된 순서대로 쌓인다',
+    role: '실제 행(리프) 또는 자식 페이지로 가는 이정표(논리프). 삽입된 순서대로 위에서 아래로 쌓인다',
+    grow: 3,
     tone: 'rows',
+    arrow: '▼ 삽입될수록 아래로',
   },
-  { name: 'Free Space', size: '가변', role: '아직 쓰지 않은 공간. 위아래 양쪽에서 갉아먹는다', tone: 'free' },
   {
+    id: 'free',
+    name: 'Free Space',
+    size: '가변',
+    role: '아직 쓰지 않은 공간. 레코드가 위에서, 디렉터리가 아래에서 갉아먹어 가운데가 줄어든다',
+    grow: 2,
+    tone: 'free',
+  },
+  {
+    id: 'directory',
     name: 'Page Directory',
     size: '가변',
     role: '레코드 4~8개마다 슬롯 하나. 페이지 끝에서부터 거꾸로 자란다',
+    grow: 0.6,
     tone: 'dir',
+    arrow: '▲ 늘어날수록 위로',
   },
   {
+    id: 'trailer',
     name: 'File Trailer',
     size: '8B',
     role: '체크섬과 LSN 하위 4바이트. 헤더 값과 맞지 않으면 쓰다 만 페이지라는 뜻이다',
+    grow: 0,
     tone: 'head',
   },
 ];
@@ -57,16 +83,8 @@ export function PageChapter() {
         순서는 자리 배치가 아니라 링크가 만든다.
       </p>
 
-      <Figure caption="위에서 아래로 한 페이지의 구성. 그림의 높이는 실제 크기 비율이 아니다 — 대부분의 공간은 User Records 와 Free Space 가 쓴다.">
-        <div className="bands">
-          {BANDS.map((band) => (
-            <div key={band.name} className={`band band--${band.tone ?? 'head'}`}>
-              <span className="band__name">{band.name}</span>
-              <span className="band__size">{band.size}</span>
-              <span className="band__role">{band.role}</span>
-            </div>
-          ))}
-        </div>
+      <Figure caption="한 페이지의 위에서 아래까지. 헤더와 트레일러는 크기가 고정이고, 가운데 빈 공간을 레코드와 디렉터리가 양쪽에서 갉아먹는다.">
+        <PageMap />
       </Figure>
 
       <Block title="레코드 순서와 next_record 링크">
@@ -103,6 +121,53 @@ export function PageChapter() {
         </Note>
       </Block>
     </>
+  );
+}
+
+/** Clicking either side highlights the same zone, so the drawing and the text stay tied together. */
+function PageMap() {
+  const [activeId, setActiveId] = useState('records');
+
+  return (
+    <div className="pagemap">
+      <div className="pagemap__side">
+        <span className="pagemap__edge">오프셋 0</span>
+        <div className="pagemap__stack">
+          {ZONES.map((zone) => (
+            <button
+              key={zone.id}
+              type="button"
+              style={{ flexGrow: zone.grow }}
+              className={`pagemap__zone pagemap__zone--${zone.tone} ${
+                zone.id === activeId ? 'pagemap__zone--active' : ''
+              }`}
+              onClick={() => setActiveId(zone.id)}
+            >
+              <span className="pagemap__name">{zone.name}</span>
+              {zone.arrow && <span className="pagemap__arrow">{zone.arrow}</span>}
+              <span className="pagemap__size">{zone.size}</span>
+            </button>
+          ))}
+        </div>
+        <span className="pagemap__edge">16KB 끝</span>
+      </div>
+
+      <ul className="pagemap__notes">
+        {ZONES.map((zone) => (
+          <li key={zone.id}>
+            <button
+              type="button"
+              className={`pagemap__note ${zone.id === activeId ? 'pagemap__note--active' : ''}`}
+              onClick={() => setActiveId(zone.id)}
+            >
+              <b>{zone.name}</b>
+              <code>{zone.size}</code>
+              <span>{zone.role}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
