@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { ComponentsChapter } from './ComponentsChapter';
 import { IndexChapter } from './IndexChapter';
+import { MvccChapter } from './MvccChapter';
 import { PageChapter } from './PageChapter';
 import { RecordChapter } from './RecordChapter';
 import { StorageChapter } from './StorageChapter';
@@ -43,5 +44,11 @@ export const CHAPTERS: Chapter[] = [
     title: '인덱스 구조',
     blurb: '클러스터드 · 세컨더리 인덱스와 탐색 경로',
     Body: IndexChapter,
+  },
+  {
+    id: 'mvcc',
+    title: 'MVCC 동작 방식',
+    blurb: 'read view 와 버전 체인으로 락 없이 읽기',
+    Body: MvccChapter,
   },
 ];
