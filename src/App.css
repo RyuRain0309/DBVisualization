@@ -1983,6 +1983,156 @@ body {
   line-height: 1.5;
 }
 
+/* docs — query pipeline */
+.pipe {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  counter-reset: pipe;
+}
+
+.pipe__stage {
+  display: grid;
+  grid-template-columns: 132px 1fr 120px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg-panel);
+}
+
+.pipe__stage--engine {
+  border-color: var(--accent);
+  background: var(--leaf);
+  margin-top: 8px;
+}
+
+.pipe__name {
+  counter-increment: pipe;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.pipe__name::before {
+  content: counter(pipe) '. ';
+  font-family: var(--mono);
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.pipe__work {
+  color: var(--text-dim);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.pipe__out {
+  justify-self: end;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--bg-raised);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.pipe__stage--engine .pipe__out {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* docs — index vs full scan cost chart */
+.cost {
+  width: 100%;
+  height: auto;
+}
+
+.cost__axis {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.cost__line {
+  stroke-width: 2;
+}
+
+.cost__line--scan {
+  stroke: var(--text-dim);
+  stroke-dasharray: 5 4;
+}
+
+.cost__line--index {
+  stroke: var(--accent);
+}
+
+.cost__cross {
+  stroke: var(--border-strong);
+  stroke-dasharray: 3 3;
+}
+
+.cost__dot {
+  fill: var(--warn);
+}
+
+.cost__axis-label {
+  fill: var(--text-dim);
+  font-size: 10.5px;
+}
+
+.cost__tag {
+  fill: var(--text-dim);
+  font-size: 11px;
+}
+
+.cost__tag--index {
+  fill: var(--accent);
+}
+
+.cost__tag--scan {
+  fill: var(--text-dim);
+}
+
+/* docs — EXPLAIN columns */
+.explain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.explain li {
+  display: grid;
+  grid-template-columns: 86px 128px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+}
+
+.explain li code {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.explain li b {
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+
+.explain li span {
+  color: var(--text-dim);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
 /* docs — MVCC visibility zones */
 .vzone {
   display: grid;
@@ -2205,8 +2355,14 @@ body {
 
   .vcase li,
   .mvtl__head,
-  .mvtl__lane {
+  .mvtl__lane,
+  .pipe__stage,
+  .explain li {
     grid-template-columns: 1fr;
+  }
+
+  .pipe__out {
+    justify-self: start;
   }
 
   .vcase li b {

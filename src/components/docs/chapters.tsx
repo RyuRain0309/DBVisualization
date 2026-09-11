@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import { ComponentsChapter } from './ComponentsChapter';
 import { IndexChapter } from './IndexChapter';
 import { MvccChapter } from './MvccChapter';
+import { OptimizerChapter } from './OptimizerChapter';
 import { PageChapter } from './PageChapter';
 import { RecordChapter } from './RecordChapter';
 import { StorageChapter } from './StorageChapter';
@@ -44,6 +45,12 @@ export const CHAPTERS: Chapter[] = [
     title: '인덱스 구조',
     blurb: '클러스터드 · 세컨더리 인덱스와 탐색 경로',
     Body: IndexChapter,
+  },
+  {
+    id: 'optimizer',
+    title: '질의 실행 경로',
+    blurb: '파서 · 옵티마이저 · 실행기가 SQL 을 엔진 호출로 바꾸는 과정',
+    Body: OptimizerChapter,
   },
   {
     id: 'mvcc',
