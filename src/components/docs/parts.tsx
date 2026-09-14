@@ -23,11 +23,13 @@ export function Figure({ caption, children }: { caption: string; children: React
 /**
  * Marks where this simulator departs from real InnoDB. The app labels its own simplifications,
  * so the docs have to do the same instead of letting the reader assume everything is modelled.
+ * Tagged 참고 rather than 단순화: some of these notes point at what the simulator models
+ * faithfully, not only at what it leaves out.
  */
 export function Note({ children }: { children: ReactNode }) {
   return (
     <p className="doc-note">
-      <span className="doc-note__tag">단순화</span>
+      <span className="doc-note__tag">참고</span>
       {children}
     </p>
   );
