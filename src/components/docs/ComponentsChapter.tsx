@@ -121,33 +121,35 @@ export function ComponentsChapter() {
           페이지에 적용된다. 디스크의 내용과 달라진 페이지를 <b>더티 페이지</b>라고 한다.
         </p>
 
-        <Sub title="페이지 교체 알고리즘 — 두 구간 LRU">
+        <Sub title="페이지 교체 알고리즘 — Midpoint Insertion LRU">
           <p>
             빈 프레임이 없으면 오래 쓰이지 않은 페이지를 제거하고 그 자리를 쓴다. 기본형 LRU 는 새로
             읽은 페이지를 목록 맨 앞에 넣지만, 그러면 한 번만 읽고 마는 대량 스캔이 목록 전체를
             교체해 버린다.
           </p>
           <p>
-            InnoDB 는 LRU 목록을 <b>young</b> 과 <b>old</b> 두 구간으로 나눈다. 기본값은 뒤쪽 37%가 old
-            이고 <code>innodb_old_blocks_pct</code> 로 조정한다. 동작은 다음과 같다.
+            그래서 InnoDB 는 목록 중간 지점에 새 페이지를 넣는 <b>midpoint insertion</b> 방식을 쓴다.
+            그 지점을 경계로 앞쪽이 <b>new(young) sublist</b>, 뒤쪽이 <b>old sublist</b> 이고, 기본값은
+            뒤쪽 37%가 old 이며 <code>innodb_old_blocks_pct</code> 로 조정한다. 동작은 다음과 같다.
           </p>
           <ol className="doc-steps">
             <li>
-              <b>삽입</b> — 새로 읽은 페이지는 맨 앞이 아니라 old 구간의 앞쪽에 들어간다.
+              <b>삽입</b> — 새로 읽은 페이지는 목록 맨 앞이 아니라 midpoint, 즉 old sublist 의 앞쪽에
+              들어간다.
             </li>
             <li>
-              <b>승격</b> — old 구간에 있는 동안 다시 접근되면 young 구간 맨 앞으로 옮겨진다. 단
+              <b>승격</b> — old sublist 에 있는 동안 다시 접근되면 new sublist 맨 앞으로 옮겨진다. 단
               삽입 직후 <code>innodb_old_blocks_time</code>(기본 1000ms) 안의 접근은 승격으로 치지
               않는다. 한 번에 이어 읽히는 페이지가 승격되는 것을 막기 위한 조건이다.
             </li>
             <li>
-              <b>제거</b> — 목록 끝, 즉 old 구간의 뒤쪽부터 제거한다. 깨끗한 페이지는 그대로 버리고,
+              <b>제거</b> — 목록 끝, 즉 old sublist 의 뒤쪽부터 제거한다. 깨끗한 페이지는 그대로 버리고,
               더티 페이지는 디스크에 기록한 뒤 버린다.
             </li>
           </ol>
           <p>
-            결과적으로 한 번만 읽힌 페이지는 old 구간 안에서 제거되고, 두 번 이상 쓰인 페이지만 young
-            구간에 남는다.
+            결과적으로 한 번만 읽힌 페이지는 old sublist 안에서 제거되고, 두 번 이상 쓰인 페이지만
+            new sublist 에 남는다.
           </p>
         </Sub>
 
