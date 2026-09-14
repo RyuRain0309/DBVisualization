@@ -49,8 +49,10 @@ export function ComponentsChapter() {
 
           <div className="map__seam">
             <b>handler API</b>
-            <span>“이 인덱스로 첫 행을 읽어라 / 다음 행 / 이 행을 이 값으로 바꿔라”</span>
-            <em>SQL 문자열은 이 선을 넘지 않는다</em>
+            <span>
+              <code>index_read</code> · <code>index_next</code> · <code>update_row</code> 같은 행
+              단위 호출만 오간다. SQL 문자열은 이 선을 넘지 않는다
+            </span>
           </div>
 
           <section className="map__layer map__layer--engine">

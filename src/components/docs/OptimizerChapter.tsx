@@ -34,7 +34,7 @@ const STAGES: Stage[] = [
   },
   {
     name: '실행',
-    work: '계획을 그대로 따라가며 엔진에 행 단위 요청을 보낸다 — “이 키로 첫 행”, “그다음 행”, “이 행을 바꿔라”',
+    work: '계획을 그대로 따라가며 엔진의 handler 함수를 호출한다 — index_read, index_next, update_row',
     output: 'handler 호출',
     layer: 'server',
   },
