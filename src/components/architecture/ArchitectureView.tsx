@@ -37,7 +37,7 @@ export function ArchitectureView({ snapshot }: { snapshot: EngineSnapshot }) {
             </span>
           </h3>
           <p>
-            읽거나 바꾼 페이지를 담아 두는 캐시. 변경은 여기서 먼저 일어나고, 디스크에는 나중에 쓰인다.
+            데이터 · 인덱스 · undo 페이지의 캐시. 없는 페이지는 읽는 순간 디스크에서 올라오고, 바꾼 페이지는 그 자리에서가 아니라 체크포인트나 LRU 축출 시점에 내려간다.
           </p>
 
           <div className="arch__stats">
@@ -91,7 +91,7 @@ export function ArchitectureView({ snapshot }: { snapshot: EngineSnapshot }) {
             <span className="arch__badge">{pendingRedo.length}건 대기</span>
           </h3>
           <p>
-            아직 영속화되지 않은 redo 레코드가 모이는 곳. 여기 있는 동안은 장애가 나면 사라지므로, 커밋은 이 내용이 redo 로그 파일에 안전히 기록된 뒤에 끝난다.
+            redo 레코드가 모이는 곳. 커밋 시점에 redo 로그 파일로 내려가 fsync 까지 끝난 뒤에야 커밋이 완료된다. 그 밖에 1초마다, 버퍼가 차면, 해당 페이지를 내려쓰기 직전에도 나간다.
           </p>
           <div className="arch__stats">
             <span>
