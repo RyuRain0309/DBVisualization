@@ -1947,8 +1947,7 @@ body {
   gap: 6px;
 }
 
-.map__units li,
-.map__side li {
+.map__units li {
   display: grid;
   gap: 2px;
   padding: 8px 10px;
@@ -1957,13 +1956,11 @@ body {
   background: var(--bg-panel);
 }
 
-.map__units li b,
-.map__side li b {
+.map__units li b {
   font-size: 12.5px;
 }
 
-.map__units li span,
-.map__side li span {
+.map__units li span {
   color: var(--text-dim);
   font-size: 11.5px;
   line-height: 1.5;
@@ -2003,36 +2000,84 @@ body {
   color: var(--text);
 }
 
-.map__engine {
+.map__pairs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 4px;
 }
 
-.map__side {
-  padding: 12px;
+.map__pairs-head,
+.map__pair {
+  display: grid;
+  grid-template-columns: 1fr 168px 1fr;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.map__pairs-head span {
+  padding: 0 2px 2px;
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+
+.map__pairs-head span:last-child {
+  text-align: right;
+}
+
+.map__cell {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 9px 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 6px;
+}
+
+.map__cell b {
+  font-size: 12.5px;
+}
+
+.map__cell span {
+  color: var(--text-dim);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.map__cell--mem {
   background: var(--leaf);
 }
 
-.map__side--disk {
-  background: var(--bg-raised);
+.map__cell--disk {
+  background: var(--bg-panel);
 }
 
-.map__side h5 {
-  margin: 0 0 8px;
-  font-size: 12px;
-  color: var(--text-dim);
-  letter-spacing: 0.04em;
+.map__cell--absent {
+  border-style: dashed;
+  background: transparent;
 }
 
-.map__side ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.map__flow {
   display: grid;
-  gap: 6px;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  gap: 3px;
+  padding: 0 4px;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.map__flow::after {
+  content: '───▸';
+  font-family: var(--mono);
+  color: var(--accent);
+  letter-spacing: -1px;
+}
+
+.map__flow--none::after {
+  content: '─ ─ ✕';
+  color: var(--border-strong);
 }
 
 .map__swap {

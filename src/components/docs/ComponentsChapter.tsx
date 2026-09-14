@@ -61,49 +61,81 @@ export function ComponentsChapter() {
               <span>행을 실제로 읽고 쓰고, 락 · 트랜잭션 · 복구를 책임진다</span>
             </header>
 
-            <div className="map__engine">
-              <div className="map__side">
-                <h5>인메모리</h5>
-                <ul>
-                  <li>
-                    <b>Buffer Pool</b>
-                    <span>페이지 캐시. 읽기도 쓰기도 여기서 먼저 일어난다</span>
-                  </li>
-                  <li>
-                    <b>Change Buffer</b>
-                    <span>버퍼 풀에 없는 세컨더리 인덱스 페이지의 변경을 모아 둔다</span>
-                  </li>
-                  <li>
-                    <b>Adaptive Hash Index</b>
-                    <span>자주 쓰이는 탐색 경로를 해시로 질러간다</span>
-                  </li>
-                  <li>
-                    <b>Log Buffer</b>
-                    <span>아직 파일로 내려가지 않은 redo 레코드가 쌓인다</span>
-                  </li>
-                </ul>
+            <div className="map__pairs">
+              <div className="map__pairs-head">
+                <span>In-Memory Structures</span>
+                <span />
+                <span>On-Disk Structures</span>
               </div>
 
-              <div className="map__side map__side--disk">
-                <h5>온디스크</h5>
-                <ul>
-                  <li>
-                    <b>테이블스페이스 (.ibd)</b>
-                    <span>행과 인덱스가 실제로 사는 곳</span>
-                  </li>
-                  <li>
-                    <b>Redo Log</b>
-                    <span>“페이지를 이렇게 바꿨다”는 기록. 장애 복구용</span>
-                  </li>
-                  <li>
-                    <b>Undo Tablespace</b>
-                    <span>“바꾸기 전엔 이랬다”는 기록. 롤백과 MVCC 용</span>
-                  </li>
-                  <li>
-                    <b>Doublewrite</b>
-                    <span>페이지를 제자리에 쓰기 전 사본. 찢어진 쓰기 대비</span>
-                  </li>
-                </ul>
+              <div className="map__pair">
+                <div className="map__cell map__cell--mem">
+                  <b>Buffer Pool</b>
+                  <span>데이터 · 인덱스 페이지 캐시. 읽기도 쓰기도 여기서 먼저 일어난다</span>
+                </div>
+                <span className="map__flow">체크포인트가 더티 페이지를 내려쓴다</span>
+                <div className="map__cell map__cell--disk">
+                  <b>Tablespaces (.ibd)</b>
+                  <span>행과 인덱스가 실제로 사는 곳</span>
+                </div>
+              </div>
+
+              <div className="map__pair">
+                <div className="map__cell map__cell--mem">
+                  <b>Buffer Pool — undo 페이지</b>
+                  <span>undo 도 결국 페이지다. 전용 버퍼 없이 같은 버퍼 풀을 쓴다</span>
+                </div>
+                <span className="map__flow">같은 경로로 내려쓴다</span>
+                <div className="map__cell map__cell--disk">
+                  <b>Undo Tablespaces</b>
+                  <span>“바꾸기 전엔 이랬다”는 기록. 롤백과 MVCC 용</span>
+                </div>
+              </div>
+
+              <div className="map__pair">
+                <div className="map__cell map__cell--mem">
+                  <b>Log Buffer</b>
+                  <span>아직 파일로 내려가지 않은 redo 레코드가 쌓인다</span>
+                </div>
+                <span className="map__flow">커밋 시점에 flush</span>
+                <div className="map__cell map__cell--disk">
+                  <b>Redo Log</b>
+                  <span>“페이지를 이렇게 바꿨다”는 기록. 장애 복구용</span>
+                </div>
+              </div>
+
+              <div className="map__pair">
+                <div className="map__cell map__cell--mem">
+                  <b>Change Buffer</b>
+                  <span>버퍼 풀에 없는 세컨더리 인덱스 페이지의 변경을 모아 둔다</span>
+                </div>
+                <span className="map__flow">나중에 그 페이지를 읽을 때 합쳐진다</span>
+                <div className="map__cell map__cell--disk">
+                  <b>Tablespaces (.ibd)</b>
+                  <span>합쳐진 결과가 세컨더리 인덱스 페이지에 반영된다</span>
+                </div>
+              </div>
+
+              <div className="map__pair">
+                <div className="map__cell map__cell--mem">
+                  <b>Adaptive Hash Index</b>
+                  <span>자주 쓰이는 탐색 경로를 해시로 질러간다</span>
+                </div>
+                <span className="map__flow map__flow--none">내려쓰지 않는다</span>
+                <div className="map__cell map__cell--absent">
+                  <span>디스크에 대응물이 없다. 버퍼 풀 내용에서 파생된 것이라 재시작하면 다시 만든다</span>
+                </div>
+              </div>
+
+              <div className="map__pair">
+                <div className="map__cell map__cell--absent">
+                  <span>메모리에 따로 두는 것이 없다. 버퍼 풀에서 곧장 나간다</span>
+                </div>
+                <span className="map__flow">더티 페이지를 여기 먼저 쓰고, 그다음 제자리에</span>
+                <div className="map__cell map__cell--disk">
+                  <b>Doublewrite</b>
+                  <span>쓰기 도중 찢어진 페이지를 되살릴 사본</span>
+                </div>
               </div>
             </div>
           </section>
@@ -144,6 +176,11 @@ export function ComponentsChapter() {
             ],
           ]}
         />
+        <p>
+          그래서 undo 를 남기는 일 자체도 redo 에 기록된다. undo 레코드를 쓰면 undo 페이지가 바뀌고,
+          그 페이지 변경이 다시 redo 레코드가 된다. 장애가 나도 undo 가 함께 복구돼야 미완 트랜잭션을
+          되돌릴 수 있기 때문이다.
+        </p>
       </Block>
 
       <Block title="변경이 처리되는 순서">
