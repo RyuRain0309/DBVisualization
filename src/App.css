@@ -2002,8 +2002,8 @@ body {
 
 .map__grid {
   display: grid;
-  grid-template-columns: 1fr 170px 1fr;
-  gap: 6px 8px;
+  grid-template-columns: 1fr 128px 1fr;
+  gap: 6px 6px;
   align-items: stretch;
 }
 
@@ -2055,55 +2055,30 @@ body {
   align-content: center;
   justify-items: center;
   text-align: center;
-  gap: 3px;
+  gap: 2px;
   color: var(--text-dim);
-  font-size: 10.5px;
-  line-height: 1.4;
+  font-size: 10px;
+  line-height: 1.35;
 }
 
 .map__flow::after {
-  content: '───▸';
+  content: '──▸';
   font-family: var(--mono);
   color: var(--accent);
   letter-spacing: -1px;
 }
 
-.map__solo {
-  list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
-  display: grid;
-  gap: 3px;
+/* No counterpart on the other side — say so instead of drawing a link that does not exist. */
+.map__cell--solo {
+  border-style: dashed;
 }
 
-.map__solo li {
-  display: grid;
-  grid-template-columns: 74px 150px 1fr;
-  gap: 10px;
-  align-items: baseline;
-  padding: 8px 10px;
-  border: 1px dashed var(--border-strong);
-  border-radius: 6px;
+.map__flow--none {
+  opacity: 0.55;
 }
 
-.map__solo em {
-  font-style: normal;
-  text-align: center;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: var(--bg-raised);
-  color: var(--text-dim);
-  font-size: 10.5px;
-}
-
-.map__solo b {
-  font-size: 12.5px;
-}
-
-.map__solo span {
-  color: var(--text-dim);
-  font-size: 11.5px;
-  line-height: 1.5;
+.map__flow--none::after {
+  content: '';
 }
 
 .map__swap {
