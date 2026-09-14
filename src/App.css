@@ -2082,15 +2082,6 @@ body {
   border-style: dashed;
 }
 
-.map__swap {
-  margin: 0;
-  padding: 9px 12px;
-  border: 1px dashed var(--border-strong);
-  border-radius: 8px;
-  color: var(--text-dim);
-  font-size: 11.5px;
-  line-height: 1.6;
-}
 
 /* docs — nested storage units */
 .nest__level {

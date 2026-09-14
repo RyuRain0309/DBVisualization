@@ -10,12 +10,12 @@ export function Block({ title, children }: { title: string; children: ReactNode 
   );
 }
 
-/** A drawing with the sentence it is meant to prove underneath it. */
-export function Figure({ caption, children }: { caption: string; children: ReactNode }) {
+/** A drawing, with the sentence it is meant to prove underneath it when one is needed. */
+export function Figure({ caption, children }: { caption?: string; children: ReactNode }) {
   return (
     <figure className="doc-figure">
       {children}
-      <figcaption>{caption}</figcaption>
+      {caption && <figcaption>{caption}</figcaption>}
     </figure>
   );
 }
