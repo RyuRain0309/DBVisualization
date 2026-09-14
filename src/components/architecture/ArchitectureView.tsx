@@ -36,9 +36,7 @@ export function ArchitectureView({ snapshot }: { snapshot: EngineSnapshot }) {
               {pool.frames.length} / {pool.capacity} 페이지
             </span>
           </h3>
-          <p>
-            데이터 · 인덱스 · undo 페이지의 캐시. 없는 페이지는 읽는 순간 디스크에서 올라오고, 바꾼 페이지는 그 자리에서가 아니라 체크포인트나 LRU 축출 시점에 내려간다.
-          </p>
+          <p>테이블스페이스의 페이지를 캐싱한다.</p>
 
           <div className="arch__stats">
             <span>
@@ -90,9 +88,7 @@ export function ArchitectureView({ snapshot }: { snapshot: EngineSnapshot }) {
             Log Buffer
             <span className="arch__badge">{pendingRedo.length}건 대기</span>
           </h3>
-          <p>
-            redo 레코드가 모이는 곳. 커밋 시점에 redo 로그 파일로 내려가 fsync 까지 끝난 뒤에야 커밋이 완료된다. 그 밖에 1초마다, 버퍼가 차면, 해당 페이지를 내려쓰기 직전에도 나간다.
-          </p>
+          <p>redo 레코드를 모아 뒀다가 커밋 시점에 내려보낸다.</p>
           <div className="arch__stats">
             <span>
               마지막 LSN <strong>{snapshot.redo.records.at(-1)?.lsn ?? 0}</strong>
@@ -105,10 +101,7 @@ export function ArchitectureView({ snapshot }: { snapshot: EngineSnapshot }) {
             Change Buffer
             <span className="arch__badge arch__badge--muted">미모델링</span>
           </h3>
-          <p>
-            비유니크 세컨더리 인덱스를 바꿔야 하는데 그 페이지가 버퍼 풀에 없을 때, 변경을 모아 뒀다가
-            나중에 페이지를 읽을 때 합친다. 이 시뮬레이터는 세컨더리 인덱스를 항상 즉시 갱신한다.
-          </p>
+          <p>버퍼 풀에 없는 세컨더리 인덱스 페이지의 변경을 모아 둔다. 여기서는 항상 즉시 갱신한다.</p>
         </article>
 
         <article className="arch__box arch__box--muted">
@@ -116,10 +109,7 @@ export function ArchitectureView({ snapshot }: { snapshot: EngineSnapshot }) {
             Adaptive Hash Index
             <span className="arch__badge arch__badge--muted">미모델링</span>
           </h3>
-          <p>
-            같은 패턴의 조회가 반복되면 B+tree 탐색을 건너뛸 해시를 자동으로 만든다. 여기서는 항상
-            루트부터 리프까지 내려간다.
-          </p>
+          <p>자주 쓰이는 탐색 경로를 해시로 질러간다. 여기서는 항상 루트부터 내려간다.</p>
         </article>
       </section>
 
@@ -190,10 +180,7 @@ export function ArchitectureView({ snapshot }: { snapshot: EngineSnapshot }) {
             Redo Log
             <span className="arch__badge">{durableRedo}건 durable</span>
           </h3>
-          <p>
-            페이지를 바꾸기 전에 먼저 남기는 기록. 커밋 시점에 여기까지 내려가면, 데이터 페이지가 아직
-            메모리에 있어도 장애 후 복구할 수 있다.
-          </p>
+          <p>페이지를 어떻게 바꿨는지. 장애 복구용이다.</p>
           <div className="arch__stats">
             <span>
               flush LSN <strong>{snapshot.redo.flushedUpToLsn}</strong>
@@ -214,11 +201,7 @@ export function ArchitectureView({ snapshot }: { snapshot: EngineSnapshot }) {
               {snapshot.doublewrite.reduce((sum, batch) => sum + batch.pages.length, 0)} 페이지
             </span>
           </h3>
-          <p>
-            더티 페이지를 테이블스페이스에 쓰기 전에 먼저 통째로 복사해 두는 영역. 쓰는 도중 장애로
-            페이지가 찢어지면 이 사본으로 되살린다. redo 는 페이지가 온전하다고 가정하므로 이것만으로는
-            복구가 안 되기 때문이다.
-          </p>
+          <p>제자리에 쓰기 전 페이지를 통째로 복사해 둔다. 찢어진 쓰기를 이 사본으로 되살린다.</p>
           {snapshot.doublewrite.length > 0 && (
             <div className="arch__stats">
               <span>
