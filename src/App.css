@@ -2000,27 +2000,21 @@ body {
   color: var(--text);
 }
 
-.map__pairs {
+.map__grid {
   display: grid;
-  gap: 4px;
-}
-
-.map__pairs-head,
-.map__pair {
-  display: grid;
-  grid-template-columns: 1fr 168px 1fr;
-  gap: 8px;
+  grid-template-columns: 1fr 170px 1fr;
+  gap: 6px 8px;
   align-items: stretch;
 }
 
-.map__pairs-head span {
+.map__col {
   padding: 0 2px 2px;
   color: var(--text-dim);
   font-size: 11px;
   letter-spacing: 0.03em;
 }
 
-.map__pairs-head span:last-child {
+.map__col--right {
   text-align: right;
 }
 
@@ -2031,6 +2025,11 @@ body {
   padding: 9px 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
+}
+
+/* Buffer Pool is one box feeding two destinations, so it spans both of their rows. */
+.map__cell--tall {
+  grid-row: span 2;
 }
 
 .map__cell b {
@@ -2051,18 +2050,12 @@ body {
   background: var(--bg-panel);
 }
 
-.map__cell--absent {
-  border-style: dashed;
-  background: transparent;
-}
-
 .map__flow {
   display: grid;
   align-content: center;
   justify-items: center;
   text-align: center;
   gap: 3px;
-  padding: 0 4px;
   color: var(--text-dim);
   font-size: 10.5px;
   line-height: 1.4;
@@ -2075,9 +2068,42 @@ body {
   letter-spacing: -1px;
 }
 
-.map__flow--none::after {
-  content: '─ ─ ✕';
-  color: var(--border-strong);
+.map__solo {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.map__solo li {
+  display: grid;
+  grid-template-columns: 74px 150px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 6px;
+}
+
+.map__solo em {
+  font-style: normal;
+  text-align: center;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--bg-raised);
+  color: var(--text-dim);
+  font-size: 10.5px;
+}
+
+.map__solo b {
+  font-size: 12.5px;
+}
+
+.map__solo span {
+  color: var(--text-dim);
+  font-size: 11.5px;
+  line-height: 1.5;
 }
 
 .map__swap {

@@ -25,7 +25,7 @@ export function ArchitectureView({ snapshot }: { snapshot: EngineSnapshot }) {
     <div className="arch">
       <section className="arch__group arch__group--memory">
         <header>
-          <h2>인메모리 구조</h2>
+          <h2>In-Memory Structures</h2>
           <p>서버 프로세스 안에 있는 것들. 여기서 일어난 변경은 아직 파일에 없다.</p>
         </header>
 
@@ -125,7 +125,7 @@ export function ArchitectureView({ snapshot }: { snapshot: EngineSnapshot }) {
 
       <section className="arch__group arch__group--disk">
         <header>
-          <h2>온디스크 구조</h2>
+          <h2>On-Disk Structures</h2>
           <p>재시작해도 남는 것들. 체크포인트와 로그 flush 가 여기로 내려쓴다.</p>
         </header>
 
@@ -234,7 +234,7 @@ export function ArchitectureView({ snapshot }: { snapshot: EngineSnapshot }) {
 
       <section className="arch__group arch__group--files">
         <header>
-          <h2>파일 구조</h2>
+          <h2>File Structures</h2>
           <p>위 구조들이 데이터 디렉터리에서 실제로 어떤 파일로 존재하는지 (MySQL 8.0 기준).</p>
         </header>
 
