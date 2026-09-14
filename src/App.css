@@ -1807,6 +1807,31 @@ body {
   line-height: 1.75;
 }
 
+.doc-sub {
+  margin: 16px 0 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--border);
+}
+
+.doc-sub h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.doc-sub p {
+  margin: 0 0 8px;
+  line-height: 1.75;
+}
+
+.doc-sub .doc-steps {
+  margin: 0 0 8px;
+}
+
+.doc-sub > :last-child {
+  margin-bottom: 0;
+}
+
 .doc-figure {
   margin: 18px 0 0;
   padding: 16px;

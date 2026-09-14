@@ -35,6 +35,16 @@ export function Note({ children }: { children: ReactNode }) {
   );
 }
 
+/** A named subsection inside a Block, for when one component has two separate mechanisms. */
+export function Sub({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="doc-sub">
+      <h4>{title}</h4>
+      {children}
+    </section>
+  );
+}
+
 /** Term on the left, what it is responsible for on the right. */
 export function Roles({ rows }: { rows: Array<[string, ReactNode]> }) {
   return (

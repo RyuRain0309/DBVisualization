@@ -1,4 +1,4 @@
-import { Block, Figure, Note } from './parts';
+import { Block, Figure, Note, Sub } from './parts';
 
 /**
  * The map chapter: who does what. The figure is stacked the way a request travels — server layer,
@@ -120,18 +120,64 @@ export function ComponentsChapter() {
           접근이 없고, 없으면 디스크에서 읽어 올린 뒤 여기에 둔다. 변경도 디스크가 아니라 이 안의
           페이지에 적용된다. 디스크의 내용과 달라진 페이지를 <b>더티 페이지</b>라고 한다.
         </p>
-        <p>
-          용량이 차면 오래 쓰이지 않은 페이지부터 제거한다. 다만 LRU 목록을 <b>young · old 두 구간</b>
-          으로 나누고, 새로 읽은 페이지를 목록 맨 앞이 아니라 old 구간 앞쪽에 넣는다. 거기서 한 번 더
-          접근돼야 young 으로 옮겨진다. 한 번만 읽고 마는 대량 스캔의 페이지가 기존 페이지를 밀어내는
-          것을 줄이기 위한 구조다.
-        </p>
-        <p>
-          더티 페이지를 디스크에 쓰는 시점은 커밋 시점이 아니다. page cleaner 스레드가 ① 빈 프레임이
-          부족할 때 LRU 목록 끝에서 ② 체크포인트 LSN 과 현재 LSN 의 차이가 커질 때 오래 변경된
-          순서로 ③ 부하가 낮을 때 ④ 종료 시에 기록한다. 커밋이 보장하는 범위는 redo 의 영속화까지이고,
-          데이터 파일 반영은 그 뒤에 별도로 일어난다.
-        </p>
+
+        <Sub title="페이지 교체 알고리즘 — 두 구간 LRU">
+          <p>
+            빈 프레임이 없으면 오래 쓰이지 않은 페이지를 제거하고 그 자리를 쓴다. 기본형 LRU 는 새로
+            읽은 페이지를 목록 맨 앞에 넣지만, 그러면 한 번만 읽고 마는 대량 스캔이 목록 전체를
+            교체해 버린다.
+          </p>
+          <p>
+            InnoDB 는 LRU 목록을 <b>young</b> 과 <b>old</b> 두 구간으로 나눈다. 기본값은 뒤쪽 37%가 old
+            이고 <code>innodb_old_blocks_pct</code> 로 조정한다. 동작은 다음과 같다.
+          </p>
+          <ol className="doc-steps">
+            <li>
+              <b>삽입</b> — 새로 읽은 페이지는 맨 앞이 아니라 old 구간의 앞쪽에 들어간다.
+            </li>
+            <li>
+              <b>승격</b> — old 구간에 있는 동안 다시 접근되면 young 구간 맨 앞으로 옮겨진다. 단
+              삽입 직후 <code>innodb_old_blocks_time</code>(기본 1000ms) 안의 접근은 승격으로 치지
+              않는다. 한 번에 이어 읽히는 페이지가 승격되는 것을 막기 위한 조건이다.
+            </li>
+            <li>
+              <b>제거</b> — 목록 끝, 즉 old 구간의 뒤쪽부터 제거한다. 깨끗한 페이지는 그대로 버리고,
+              더티 페이지는 디스크에 기록한 뒤 버린다.
+            </li>
+          </ol>
+          <p>
+            결과적으로 한 번만 읽힌 페이지는 old 구간 안에서 제거되고, 두 번 이상 쓰인 페이지만 young
+            구간에 남는다.
+          </p>
+        </Sub>
+
+        <Sub title="더티 페이지를 디스크에 기록하는 시점">
+          <p>
+            커밋 시점이 아니다. 커밋이 보장하는 범위는 redo 의 영속화까지이고, 데이터 파일 반영은 그
+            뒤에 별도로 일어난다. 실제 기록은 <b>page cleaner</b> 스레드가 다음 경우에 수행한다.
+          </p>
+          <ol className="doc-steps">
+            <li>
+              <b>빈 프레임 부족</b> — 읽어 올릴 페이지는 있는데 자리가 없을 때, LRU 목록 끝쪽의 더티
+              페이지를 기록해 자리를 만든다(<code>innodb_lru_scan_depth</code>).
+            </li>
+            <li>
+              <b>체크포인트 지연</b> — 가장 오래 전에 변경된 페이지의 LSN 과 현재 LSN 의 차이가 커지면,
+              오래 변경된 순서로 기록해 체크포인트 LSN 을 진행시킨다(<code>innodb_adaptive_flushing</code>,{' '}
+              <code>innodb_io_capacity</code>).
+            </li>
+            <li>
+              <b>유휴 상태</b> — 부하가 낮을 때 배경으로 조금씩 기록한다.
+            </li>
+            <li>
+              <b>종료</b> — <code>innodb_fast_shutdown=0</code> 이면 종료 시 전부 기록한다.
+            </li>
+          </ol>
+          <p>
+            어느 경우든 WAL 규칙이 우선한다. 페이지를 기록하기 전에 그 페이지의 LSN 까지의 redo 가 먼저
+            영속화돼야 하며, 기록 경로는 <code>버퍼 풀 → doublewrite → .ibd</code> 순이다.
+          </p>
+        </Sub>
       </Block>
 
       <Block title="Change Buffer">
