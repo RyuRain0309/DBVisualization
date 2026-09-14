@@ -91,7 +91,7 @@ export function ArchitectureView({ snapshot }: { snapshot: EngineSnapshot }) {
             <span className="arch__badge">{pendingRedo.length}건 대기</span>
           </h3>
           <p>
-            아직 디스크에 내려가지 않은 redo 레코드가 모이는 곳. 커밋 시점에 redo 로그 파일로 내려간다.
+            아직 영속화되지 않은 redo 레코드가 모이는 곳. 여기 있는 동안은 장애가 나면 사라지므로, 커밋은 이 내용이 redo 로그 파일에 안전히 기록된 뒤에 끝난다.
           </p>
           <div className="arch__stats">
             <span>

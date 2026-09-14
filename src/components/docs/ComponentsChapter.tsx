@@ -86,7 +86,9 @@ export function ComponentsChapter() {
 
               <div className="map__cell map__cell--mem">
                 <b>Log Buffer</b>
-                <span>아직 파일로 내려가지 않은 redo 레코드가 쌓인다</span>
+                <span>
+                  아직 영속화되지 않은 redo 레코드. 여기 있는 동안은 장애가 나면 사라진다
+                </span>
               </div>
               <span className="map__flow map__flow--out" />
               <div className="map__cell map__cell--disk">
