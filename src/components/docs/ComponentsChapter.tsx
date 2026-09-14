@@ -1,71 +1,115 @@
 import { Block, Figure, Note, Roles } from './parts';
 
 /**
- * The map chapter: who does what. Everything else in the docs is a zoom into one of these boxes,
- * so the layout matches the app's 아키텍처 tab — memory on one side, disk on the other.
+ * The map chapter: who does what. The figure is stacked the way a request travels — server layer,
+ * the handler API seam, then the engine — because the most common confusion is assuming the
+ * parser and optimizer belong to InnoDB. Inside the engine the layout matches the app's
+ * 아키텍처 tab: memory on one side, disk on the other.
  */
 export function ComponentsChapter() {
   return (
     <>
       <p className="doc-lead">
-        MySQL 은 SQL 을 해석하는 서버 레이어와, 데이터를 실제로 보관하는 스토리지 엔진으로 나뉜다.
-        InnoDB 는 후자다. 파싱과 실행 계획은 위에서 끝나고, InnoDB 는 <strong>행 단위로 읽고 쓰라</strong>는
-        요청만 받는다.
+        MySQL 은 두 계층이다. 위의 <strong>서버 레이어</strong>가 SQL 을 해석해 무엇을 읽을지 정하고,
+        아래의 <strong>스토리지 엔진</strong>이 그 요청대로 데이터를 읽고 쓴다. InnoDB 는 아래쪽이다.
+        둘 사이는 <code>handler</code> API 로만 이어져 있어서, 엔진은 SQL 문장을 아예 보지 못하고{' '}
+        <strong>행 단위 요청</strong>만 받는다.
       </p>
 
-      <Figure caption="위에서 아래로 한 요청이 지나가는 층. 굵은 선 아래가 InnoDB 가 책임지는 범위다.">
+      <Figure caption="한 요청이 위에서 아래로 지나가는 두 계층. 굵은 선 위는 엔진이 무엇이든 똑같이 돌고, 아래만 InnoDB 의 몫이다.">
         <div className="map">
-          <div className="map__layer map__layer--server">
-            <strong>SQL 레이어</strong>
-            <span>커넥션 · 파서 · 옵티마이저 · 실행기</span>
-          </div>
-          <div className="map__seam">handler API — “id=20 인 행을 읽어라 / 이 값으로 바꿔라”</div>
+          <section className="map__layer">
+            <header>
+              <h4>서버 레이어</h4>
+              <span>mysqld — 모든 스토리지 엔진이 공유한다</span>
+            </header>
+            <ul className="map__units">
+              <li>
+                <b>커넥션 핸들러</b>
+                <span>접속과 스레드, 인증과 권한</span>
+              </li>
+              <li>
+                <b>파서</b>
+                <span>SQL 문자열을 파스 트리로</span>
+              </li>
+              <li>
+                <b>옵티마이저</b>
+                <span>통계를 보고 인덱스와 조인 순서를 고른다</span>
+              </li>
+              <li>
+                <b>실행기</b>
+                <span>계획을 따라가며 엔진을 호출한다</span>
+              </li>
+            </ul>
+            <p className="map__aside">
+              데이터 딕셔너리 · 바이너리 로그 · 복제도 이 층에 있다. 바이너리 로그는 redo 와 다른
+              물건이다 — 복제와 시점 복구용이고, 엔진과 무관하게 서버가 남긴다.
+            </p>
+          </section>
 
-          <div className="map__engine">
-            <div className="map__side">
-              <h4>인메모리</h4>
-              <ul>
-                <li>
-                  <b>Buffer Pool</b>
-                  <span>페이지 캐시. 읽기도 쓰기도 여기서 먼저 일어난다</span>
-                </li>
-                <li>
-                  <b>Change Buffer</b>
-                  <span>버퍼 풀에 없는 세컨더리 인덱스 페이지의 변경을 모아 둔다</span>
-                </li>
-                <li>
-                  <b>Adaptive Hash Index</b>
-                  <span>자주 쓰이는 탐색 경로를 해시로 질러간다</span>
-                </li>
-                <li>
-                  <b>Log Buffer</b>
-                  <span>아직 파일로 내려가지 않은 redo 레코드가 쌓인다</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="map__side map__side--disk">
-              <h4>온디스크</h4>
-              <ul>
-                <li>
-                  <b>테이블스페이스 (.ibd)</b>
-                  <span>행과 인덱스가 실제로 사는 곳</span>
-                </li>
-                <li>
-                  <b>Redo Log</b>
-                  <span>“페이지를 이렇게 바꿨다”는 기록. 장애 복구용</span>
-                </li>
-                <li>
-                  <b>Undo Tablespace</b>
-                  <span>“바꾸기 전엔 이랬다”는 기록. 롤백과 MVCC 용</span>
-                </li>
-                <li>
-                  <b>Doublewrite</b>
-                  <span>페이지를 제자리에 쓰기 전 사본. 찢어진 쓰기 대비</span>
-                </li>
-              </ul>
-            </div>
+          <div className="map__seam">
+            <b>handler API</b>
+            <span>“이 인덱스로 첫 행을 읽어라 / 다음 행 / 이 행을 이 값으로 바꿔라”</span>
+            <em>SQL 문자열은 이 선을 넘지 않는다</em>
           </div>
+
+          <section className="map__layer map__layer--engine">
+            <header>
+              <h4>스토리지 엔진 레이어 — InnoDB</h4>
+              <span>행을 실제로 읽고 쓰고, 락 · 트랜잭션 · 복구를 책임진다</span>
+            </header>
+
+            <div className="map__engine">
+              <div className="map__side">
+                <h5>인메모리</h5>
+                <ul>
+                  <li>
+                    <b>Buffer Pool</b>
+                    <span>페이지 캐시. 읽기도 쓰기도 여기서 먼저 일어난다</span>
+                  </li>
+                  <li>
+                    <b>Change Buffer</b>
+                    <span>버퍼 풀에 없는 세컨더리 인덱스 페이지의 변경을 모아 둔다</span>
+                  </li>
+                  <li>
+                    <b>Adaptive Hash Index</b>
+                    <span>자주 쓰이는 탐색 경로를 해시로 질러간다</span>
+                  </li>
+                  <li>
+                    <b>Log Buffer</b>
+                    <span>아직 파일로 내려가지 않은 redo 레코드가 쌓인다</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="map__side map__side--disk">
+                <h5>온디스크</h5>
+                <ul>
+                  <li>
+                    <b>테이블스페이스 (.ibd)</b>
+                    <span>행과 인덱스가 실제로 사는 곳</span>
+                  </li>
+                  <li>
+                    <b>Redo Log</b>
+                    <span>“페이지를 이렇게 바꿨다”는 기록. 장애 복구용</span>
+                  </li>
+                  <li>
+                    <b>Undo Tablespace</b>
+                    <span>“바꾸기 전엔 이랬다”는 기록. 롤백과 MVCC 용</span>
+                  </li>
+                  <li>
+                    <b>Doublewrite</b>
+                    <span>페이지를 제자리에 쓰기 전 사본. 찢어진 쓰기 대비</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
+          <p className="map__swap">
+            같은 자리에 MyISAM · Memory 같은 다른 엔진을 끼울 수도 있다. 그러면 위 네 칸은 그대로고,
+            트랜잭션 · 락 · 복구의 성질만 통째로 달라진다.
+          </p>
         </div>
       </Figure>
 

@@ -19,7 +19,7 @@ export const CHAPTERS: Chapter[] = [
   {
     id: 'components',
     title: 'InnoDB 구성요소',
-    blurb: '버퍼 풀 · 로그 · 테이블스페이스가 맡는 일',
+    blurb: '서버 레이어와 스토리지 엔진의 경계, 그리고 각 구성요소',
     Body: ComponentsChapter,
   },
   {
