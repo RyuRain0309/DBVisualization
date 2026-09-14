@@ -109,7 +109,7 @@ export function ArchitectureView({ snapshot }: { snapshot: EngineSnapshot }) {
             Adaptive Hash Index
             <span className="arch__badge arch__badge--muted">미모델링</span>
           </h3>
-          <p>자주 쓰이는 탐색 경로를 해시로 질러간다. 여기서는 항상 루트부터 내려간다.</p>
+          <p>반복되는 탐색 경로를 해시로 대신한다. 여기서는 항상 루트부터 내려간다.</p>
         </article>
       </section>
 
