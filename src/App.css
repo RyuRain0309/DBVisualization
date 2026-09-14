@@ -2062,23 +2062,24 @@ body {
 }
 
 .map__flow::after {
-  content: '──▸';
   font-family: var(--mono);
+  font-size: 12px;
   color: var(--accent);
   letter-spacing: -1px;
 }
 
-/* No counterpart on the other side — say so instead of drawing a link that does not exist. */
+/* Pages travel both ways; redo only leaves. */
+.map__flow--both::after {
+  content: '◂───▸';
+}
+
+.map__flow--out::after {
+  content: '────▸';
+}
+
+/* Nothing on the other side to link to. */
 .map__cell--solo {
   border-style: dashed;
-}
-
-.map__flow--none {
-  opacity: 0.55;
-}
-
-.map__flow--none::after {
-  content: '';
 }
 
 .map__swap {

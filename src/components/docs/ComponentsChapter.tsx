@@ -16,7 +16,7 @@ export function ComponentsChapter() {
         <strong>행 단위 요청</strong>만 받는다.
       </p>
 
-      <Figure caption="한 요청이 위에서 아래로 지나가는 두 계층. 굵은 선 위는 엔진이 무엇이든 똑같이 돌고, 아래만 InnoDB 의 몫이다.">
+      <Figure caption="한 요청이 위에서 아래로 지나가는 두 계층. 굵은 선 위는 엔진이 무엇이든 똑같이 돌고, 아래만 InnoDB 의 몫이다. 페이지는 버퍼 풀과 파일 사이를 양방향으로 오가지만, redo 는 나가기만 한다 — 복구 때 읽히더라도 로그 버퍼로 되돌아오지 않고 버퍼 풀의 페이지에 바로 적용된다.">
         <div className="map">
           <section className="map__layer">
             <header>
@@ -72,13 +72,13 @@ export function ComponentsChapter() {
                   데이터 · 인덱스 · undo 페이지를 모두 담는 캐시. 읽기도 쓰기도 여기서 먼저 일어난다
                 </span>
               </div>
-              <span className="map__flow">체크포인트가 내려쓴다</span>
+              <span className="map__flow map__flow--both" />
               <div className="map__cell map__cell--disk">
                 <b>Tablespaces (.ibd)</b>
                 <span>행과 인덱스가 실제로 사는 곳</span>
               </div>
 
-              <span className="map__flow">undo 페이지도 같은 경로</span>
+              <span className="map__flow map__flow--both" />
               <div className="map__cell map__cell--disk">
                 <b>Undo Tablespaces</b>
                 <span>“바꾸기 전엔 이랬다”는 기록. 롤백과 MVCC 용</span>
@@ -88,7 +88,7 @@ export function ComponentsChapter() {
                 <b>Log Buffer</b>
                 <span>아직 파일로 내려가지 않은 redo 레코드가 쌓인다</span>
               </div>
-              <span className="map__flow">커밋 시점에 flush</span>
+              <span className="map__flow map__flow--out" />
               <div className="map__cell map__cell--disk">
                 <b>Redo Log</b>
                 <span>“페이지를 이렇게 바꿨다”는 기록. 장애 복구용</span>
@@ -100,7 +100,7 @@ export function ComponentsChapter() {
                   버퍼 풀에 없는 세컨더리 인덱스 페이지의 변경을 모아 뒀다가, 그 페이지를 읽을 때 합친다
                 </span>
               </div>
-              <span className="map__flow map__flow--none">짝이 없다</span>
+              <span />
               <div className="map__cell map__cell--disk map__cell--solo">
                 <b>Doublewrite</b>
                 <span>더티 페이지를 제자리에 쓰기 전 여기 먼저 통째로 쓴다. 찢어진 쓰기 대비</span>
