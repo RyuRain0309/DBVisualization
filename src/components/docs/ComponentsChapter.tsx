@@ -68,10 +68,7 @@ export function ComponentsChapter() {
 
               <div className="map__cell map__cell--mem map__cell--tall">
                 <b>Buffer Pool</b>
-                <span>
-                  데이터 · 인덱스 · undo 페이지의 캐시. 없는 페이지는 읽는 순간 디스크에서 올라오고,
-                  바꾼 페이지는 그 자리에서가 아니라 체크포인트나 LRU 축출 시점에 내려간다
-                </span>
+                <span>테이블스페이스의 페이지를 캐싱한다</span>
               </div>
               <span className="map__flow map__flow--both" />
               <div className="map__cell map__cell--disk">
@@ -82,39 +79,32 @@ export function ComponentsChapter() {
               <span className="map__flow map__flow--both" />
               <div className="map__cell map__cell--disk">
                 <b>Undo Tablespaces</b>
-                <span>“바꾸기 전엔 이랬다”는 기록. 롤백과 MVCC 용</span>
+                <span>바꾸기 전 값. 롤백과 MVCC 가 읽는다</span>
               </div>
 
               <div className="map__cell map__cell--mem">
                 <b>Log Buffer</b>
-                <span>
-                  redo 레코드가 모이는 곳. 커밋 시점에 redo 파일로 내려가 fsync 까지 끝나고, 그 밖에
-                  1초마다 · 버퍼가 차면 · 해당 페이지를 내려쓰기 직전에도 나간다
-                </span>
+                <span>redo 레코드를 모아 뒀다가 커밋 시점에 내려보낸다</span>
               </div>
               <span className="map__flow map__flow--out" />
               <div className="map__cell map__cell--disk">
                 <b>Redo Log</b>
-                <span>“페이지를 이렇게 바꿨다”는 기록. 장애 복구용</span>
+                <span>페이지를 어떻게 바꿨는지. 장애 복구용</span>
               </div>
 
               <div className="map__cell map__cell--mem map__cell--solo">
                 <b>Change Buffer</b>
-                <span>
-                  버퍼 풀에 없는 세컨더리 인덱스 페이지의 변경을 모아 뒀다가, 그 페이지를 읽을 때 합친다
-                </span>
+                <span>버퍼 풀에 없는 세컨더리 인덱스 페이지의 변경을 모아 둔다</span>
               </div>
               <span />
               <div className="map__cell map__cell--disk map__cell--solo">
                 <b>Doublewrite</b>
-                <span>더티 페이지를 제자리에 쓰기 전 여기 먼저 통째로 쓴다. 찢어진 쓰기 대비</span>
+                <span>제자리에 쓰기 전 페이지를 통째로 복사해 둔다</span>
               </div>
 
               <div className="map__cell map__cell--mem map__cell--solo">
                 <b>Adaptive Hash Index</b>
-                <span>
-                  자주 쓰이는 탐색 경로를 해시로 질러간다. 버퍼 풀에서 파생된 것이라 재시작하면 다시 만든다
-                </span>
+                <span>자주 쓰이는 탐색 경로를 해시로 질러간다</span>
               </div>
               <span />
               <span />
