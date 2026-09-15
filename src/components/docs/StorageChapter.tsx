@@ -1,4 +1,4 @@
-import { Block, Figure, Note, Roles } from './parts';
+import { Block, Figure, Note, Roles, Var } from './parts';
 
 const PAGES_IN_EXTENT = 64;
 
@@ -76,7 +76,7 @@ export function StorageChapter() {
             [
               '페이지',
               <>
-                읽기 · 쓰기 · 캐싱 · 락 관리의 기준 단위. 기본 16KB(<code>innodb_page_size</code>).
+                읽기 · 쓰기 · 캐싱 · 락 관리의 기준 단위. 기본 16KB(<Var name="innodb_page_size" />).
                 한 행만 필요해도 페이지 전체가 버퍼 풀로 올라온다.
               </>,
             ],

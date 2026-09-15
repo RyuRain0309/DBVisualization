@@ -1,4 +1,4 @@
-import { Block, Figure, Note, Sub } from './parts';
+import { Block, Figure, Note, Sub, Var } from './parts';
 
 /**
  * The map chapter: who does what. The figure is stacked the way a request travels — server layer,
@@ -118,85 +118,85 @@ export function ComponentsChapter() {
         <p>
           테이블스페이스의 페이지를 메모리에 보관하는 캐시다. 읽으려는 페이지가 여기 있으면 디스크
           접근이 없고, 없으면 디스크에서 읽어 올린 뒤 여기에 둔다. 변경도 디스크가 아니라 이 안의
-          페이지에 적용된다. 디스크의 내용과 달라진 페이지를 <b>더티 페이지</b>라고 한다.
+          페이지에 적용된다. 디스크의 내용과 달라진 페이지를 <b>Dirty Page</b>라고 한다.
         </p>
 
         <Sub title="페이지 교체 알고리즘 — Midpoint Insertion LRU">
           <p>
-            빈 프레임이 없으면 오래 쓰이지 않은 페이지를 제거하고 그 자리를 쓴다. 기본형 LRU 는 새로
-            읽은 페이지를 목록 맨 앞에 넣지만, 그러면 한 번만 읽고 마는 대량 스캔이 목록 전체를
-            교체해 버린다.
+            큰 테이블을 풀 스캔하면 수만 개의 페이지가 버퍼 풀로 들어온 경우 일반 LRU 는 이 페이지들을 전부 목록 맨 앞에 넣으면서 자주 조회되던 페이지가 밀려 삭제되는 일이 발생한다.
           </p>
           <p>
-            그래서 InnoDB 는 목록 중간 지점에 새 페이지를 넣는 <b>midpoint insertion</b> 방식을 쓴다.
-            그 지점을 경계로 앞쪽이 <b>new(young) sublist</b>, 뒤쪽이 <b>old sublist</b> 이고, 기본값은
-            뒤쪽 37%가 old 이며 <code>innodb_old_blocks_pct</code> 로 조정한다. 동작은 다음과 같다.
+            이를 해결하기 위해 InnoDB는 <b>새 페이지는</b> 목록 맨 앞이 아니라 <b>중간</b>에 넣는 전략을 취한다.<br/>
+            중간 지점 위치는 설정값(<Var name="innodb_old_blocks_pct" />)에 의해 정해지며 앞부분은 <b>Young sublist</b> 뒷부분은 <b>Old sublist</b>라고 한다.<br/>
           </p>
-          <ol className="doc-steps">
+          <ul className="doc-steps">
             <li>
-              <b>삽입</b> — 새로 읽은 페이지는 목록 맨 앞이 아니라 midpoint, 즉 old sublist 의 앞쪽에
-              들어간다.
+              <b>삽입</b> — 새 페이지는 old sublist 맨 앞으로 들어간다.
             </li>
             <li>
-              <b>승격</b> — old sublist 에 있는 동안 다시 접근되면 new sublist 맨 앞으로 옮겨진다. 단
-              삽입 직후 <code>innodb_old_blocks_time</code>(기본 1000ms) 안의 접근은 승격으로 치지
-              않는다. 한 번에 이어 읽히는 페이지가 승격되는 것을 막기 위한 조건이다.
+              <b>승격</b> — old 에 있는 동안 다시 접근되면 new 맨 앞으로 옮긴다. 스캔이 한 페이지 안의 행들을 이어 읽는 것을 재접근으로 오해하지 않기 위해 삽입 후 설정값 (<Var name="innodb_old_blocks_time" />) 동안의 접근은 무시한다.
             </li>
             <li>
-              <b>제거</b> — 목록 끝, 즉 old sublist 의 뒤쪽부터 제거한다. 깨끗한 페이지는 그대로 버리고,
-              더티 페이지는 디스크에 기록한 뒤 버린다.
+              <b>제거</b> — 자리가 필요하면 old 맨뒤부터 제거한다. 더티 페이지 경우에는 flush 후 제거된다.
             </li>
-          </ol>
-          <p>
-            결과적으로 한 번만 읽힌 페이지는 old sublist 안에서 제거되고, 두 번 이상 쓰인 페이지만
-            new sublist 에 남는다.
-          </p>
+          </ul>
         </Sub>
 
         <Sub title="더티 페이지를 디스크에 기록하는 시점">
           <p>
-            커밋 시점이 아니다. 커밋이 보장하는 범위는 redo 의 영속화까지이고, 데이터 파일 반영은 그
-            뒤에 별도로 일어난다. 실제 기록은 <b>page cleaner</b> 스레드가 다음 경우에 수행한다.
+            아래 상황에서 <b>Buffer Pool</b> 내 <b>Dirty Page</b>를 <b>Page Cleaner</b> 스레드를 통해 <b>Flush</b> 된다.
           </p>
-          <ol className="doc-steps">
+          <ul className="doc-steps">
             <li>
-              <b>빈 프레임 부족</b> — 읽어 올릴 페이지는 있는데 자리가 없을 때, LRU 목록 끝쪽의 더티
-              페이지를 기록해 자리를 만든다(<code>innodb_lru_scan_depth</code>).
+              <b>LRU Flushing</b> — Page Cleaner 스레드가 약 1초 주기로 LRU 목록 끝(old sublist tail)부터 
+              최대 설정값(<Var name="innodb_lru_scan_depth" />)까지 읽으면서 빈 프레임을 확보하는 과정에서 더티 페이지는 flush가 된다.
+              <p className="note">
+                <b>참고</b> — 이 백그라운드 청소가 워크로드를 못 따라가 빈 프레임이 실제로 바닥나면,
+                새 페이지를 읽어야 하는 쿼리 스레드가 직접 LRU tail의 더티 페이지 하나를 동기적으로
+                flush한다(Single Page Flush). 정상적인 경로가 아니라 예외 상황이며, 이게 잦다면{' '}
+                <Var name="innodb_lru_scan_depth" /> 조정 등 튜닝이 필요하다는 신호다.
+              </p>
             </li>
             <li>
-              <b>체크포인트 지연</b> — 가장 오래 전에 변경된 페이지의 LSN 과 현재 LSN 의 차이가 커지면,
-              오래 변경된 순서로 기록해 체크포인트 LSN 을 진행시킨다(<code>innodb_adaptive_flushing</code>,{' '}
-              <code>innodb_io_capacity</code>).
+              <b>체크포인트 지연 방지</b> — Redo Log는 크기가 고정된 원형 구조라, 기존 공간을
+              재사용하려면 그 변경사항이 디스크에 반영되어 있어야 한다. 현재 LSN과
+              체크포인트 LSN(반영 완료 지점)의 격차가 벌어질수록, 가장 오래전에 변경된 dirty
+              page부터 flush해 체크포인트 LSN을 전진시킨다.
+              <p className="note">
+                <b>참고</b> — 이 flush는 격차가 다 벌어진 뒤 한 번에 처리하는 게 아니라, 격차가
+                커지는 정도에 비례해 <Var name="innodb_adaptive_flushing" />가 flush 속도를
+                지속적으로 끌어올리는 선제적 방식이다. 만약 이 조절이 늦어 Redo Log 공간이 실제로
+                바닥나면, InnoDB는 새 트랜잭션의 커밋 자체를 막고 밀린 dirty page를 강제로 몰아서
+                flush한다(sync flush) — 쿼리 스레드 하나가 지연되는 Single Page Flush보다 훨씬
+                심각한, 서버 전체의 쓰기가 멈추는 사태다.
+              </p>
             </li>
             <li>
-              <b>유휴 상태</b> — 부하가 낮을 때 배경으로 조금씩 기록한다.
+              <b>유휴 상태</b> — 부하가 낮을 때 백그라운드로 조금씩 기록한다.
             </li>
             <li>
               <b>종료</b> — <code>innodb_fast_shutdown=0</code> 이면 종료 시 전부 기록한다.
             </li>
-          </ol>
+          </ul>
           <p>
             어느 경우든 WAL 규칙이 우선한다. 페이지를 기록하기 전에 그 페이지의 LSN 까지의 redo 가 먼저
-            영속화돼야 하며, 기록 경로는 <code>버퍼 풀 → doublewrite → .ibd</code> 순이다.
+            영속화돼야 하며, 기록 경로는 <code>Buffer Pool → doublewrite → .ibd</code> 순이다.
           </p>
         </Sub>
       </Block>
 
       <Block title="Change Buffer">
         <p>
-          세컨더리 인덱스 페이지를 변경해야 하는데 그 페이지가 버퍼 풀에 없을 때, 페이지를 읽지 않고
-          변경 내용만 메모리에 기록해 두는 영역이다. 이후 그 페이지가 다른 이유로 버퍼 풀에 올라올 때
-          기록해 둔 변경을 적용한다.
+          세컨더리 인덱스는 값이 무작위로 흩어져 있어, INSERT 시 갱신할 페이지가 버퍼 풀에 없는
+          경우가 잦다. Change Buffer 는 이때 페이지를 읽지 않고 <b>변경 내용만</b> 기록해 두었다가,
+          그 페이지가 다른 이유로 버퍼 풀에 올라올 때 한꺼번에 적용한다. 쌓인 변경을 읽기 한 번으로
+          처리하므로 랜덤 I/O 가 줄어든다.
         </p>
         <p>
-          대상은 <b>비유니크 세컨더리 인덱스</b>로 한정된다. 클러스터드 인덱스는 행을 변경하려면 해당
-          페이지가 필요하고, 유니크 인덱스는 중복 여부를 확인해야 하므로 페이지를 읽지 않을 수 없다.
-          즉 페이지를 읽지 않아도 되는 경우에만 변경을 미룰 수 있다.
+          대상은 <b>비유니크 세컨더리 인덱스</b>뿐이다. 클러스터드 인덱스는 행 자체를 변경해야 하고,
+          유니크 인덱스는 중복 검사가 필요해 페이지를 읽어야하기 때문이다.
         </p>
-        <p>
-          값이 무작위로 분포한 인덱스에 대량 INSERT 를 수행할 때 디스크 읽기를 줄이는 효과가 크다.
-          반대로 변경 직후 같은 페이지를 조회하는 작업에서는 이득이 없다. 이 영역은 버퍼 풀 공간의
-          일부를 사용하며 <code>innodb_change_buffer_max_size</code> 로 비율을 정한다.
+        <p>버퍼 풀의 일부를 사용하며 비율은{' '}<Var name="innodb_change_buffer_max_size" /> 로 정한다.
         </p>
       </Block>
 
@@ -224,7 +224,7 @@ export function ComponentsChapter() {
         <p>
           로그 버퍼의 내용이 파일로 기록되는 시점은 커밋 시점, 약 1초 주기, 버퍼 사용량이 임계치를
           넘을 때, 그리고 해당 LSN 의 페이지를 디스크에 기록하기 직전이다. 커밋 시점의 동작은{' '}
-          <code>innodb_flush_log_at_trx_commit</code> 이 결정한다. 기본값 1 은 매 커밋마다 fsync 까지
+          <Var name="innodb_flush_log_at_trx_commit" /> 이 결정한다. 기본값 1 은 매 커밋마다 fsync 까지
           수행하고, 2 는 OS 에 쓰기만 요청하며, 0 은 약 1초 주기로만 기록한다.
         </p>
         <p>

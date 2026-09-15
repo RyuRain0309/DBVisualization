@@ -35,6 +35,32 @@ export function Note({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * MySQL 8.0 defaults for the settings these chapters mention. Kept here rather than inline so the
+ * same value cannot drift between two chapters that name the same variable.
+ */
+const DEFAULTS: Record<string, string> = {
+  innodb_adaptive_flushing: 'ON',
+  innodb_change_buffer_max_size: '25 (버퍼 풀의 %)',
+  innodb_fast_shutdown: '1',
+  innodb_flush_log_at_trx_commit: '1',
+  innodb_io_capacity: '200',
+  innodb_lru_scan_depth: '1024',
+  innodb_old_blocks_pct: '37 (%)',
+  innodb_old_blocks_time: '1000 (ms)',
+  innodb_page_size: '16384 (16KB)',
+};
+
+/** A setting name that shows its default on hover. */
+export function Var({ name }: { name: string }) {
+  const fallback = DEFAULTS[name];
+  return (
+    <code className="doc-var" data-default={fallback ? `기본값 ${fallback}` : undefined}>
+      {name}
+    </code>
+  );
+}
+
 /** A named subsection inside a Block, for when one component has two separate mechanisms. */
 export function Sub({ title, children }: { title: string; children: ReactNode }) {
   return (
