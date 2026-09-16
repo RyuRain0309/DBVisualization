@@ -1,10 +1,38 @@
 import type { ReactNode } from 'react';
 
 /** One numbered chapter body block: a heading plus prose. */
-export function Block({ title, children }: { title: string; children: ReactNode }) {
+/** Which side of the architecture diagram a component sits on; 'both' shows one badge each. */
+export type Side = 'memory' | 'disk' | 'both';
+
+const SIDE_LABEL = {
+  memory: 'In-Memory',
+  disk: 'On-Disk',
+} as const;
+
+function badgesFor(side: Side): Array<keyof typeof SIDE_LABEL> {
+  return side === 'both' ? ['memory', 'disk'] : [side];
+}
+
+export function Block({
+  title,
+  side,
+  children,
+}: {
+  title: string;
+  side?: Side;
+  children: ReactNode;
+}) {
   return (
     <section className="doc-block">
-      <h3>{title}</h3>
+      <h3>
+        {title}
+        {side &&
+          badgesFor(side).map((one) => (
+            <span key={one} className={`doc-side doc-side--${one}`}>
+              {SIDE_LABEL[one]}
+            </span>
+          ))}
+      </h3>
       {children}
     </section>
   );
@@ -45,10 +73,12 @@ const DEFAULTS: Record<string, string> = {
   innodb_fast_shutdown: '1',
   innodb_flush_log_at_trx_commit: '1',
   innodb_io_capacity: '200',
+  innodb_log_buffer_size: '16777216 (16MB)',
   innodb_lru_scan_depth: '1024',
   innodb_old_blocks_pct: '37 (%)',
   innodb_old_blocks_time: '1000 (ms)',
   innodb_page_size: '16384 (16KB)',
+  innodb_redo_log_capacity: '104857600 (100MB)',
 };
 
 /** A setting name that shows its default on hover. */

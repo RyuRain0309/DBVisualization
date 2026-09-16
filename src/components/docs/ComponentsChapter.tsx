@@ -114,7 +114,7 @@ export function ComponentsChapter() {
         </div>
       </Figure>
 
-      <Block title="Buffer Pool">
+      <Block title="Buffer Pool" side="memory">
         <p>
           테이블스페이스의 페이지를 메모리에 보관하는 캐시다. 읽으려는 페이지가 여기 있으면 디스크
           접근이 없고, 없으면 디스크에서 읽어 올린 뒤 여기에 둔다. 변경도 디스크가 아니라 이 안의
@@ -127,7 +127,7 @@ export function ComponentsChapter() {
           </p>
           <p>
             이를 해결하기 위해 InnoDB는 <b>새 페이지는</b> 목록 맨 앞이 아니라 <b>중간</b>에 넣는 전략을 취한다.<br/>
-            중간 지점 위치는 설정값(<Var name="innodb_old_blocks_pct" />)에 의해 정해지며 앞부분은 <b>Young sublist</b> 뒷부분은 <b>Old sublist</b>라고 한다.<br/>
+            중간 지점 위치는 설정값(<Var name="innodb_old_blocks_pct" />)에 의해 정해지며 앞부분은 <b>New sublist</b> 뒷부분은 <b>Old sublist</b>라고 한다.<br/>
           </p>
           <ul className="doc-steps">
             <li>
@@ -185,7 +185,7 @@ export function ComponentsChapter() {
         </Sub>
       </Block>
 
-      <Block title="Change Buffer">
+      <Block title="Change Buffer" side="memory">
         <p>
           세컨더리 인덱스는 값이 무작위로 흩어져 있어, INSERT 시 갱신할 페이지가 버퍼 풀에 없는
           경우가 잦다. Change Buffer 는 이때 페이지를 읽지 않고 <b>변경 내용만</b> 기록해 두었다가,
@@ -200,42 +200,102 @@ export function ComponentsChapter() {
         </p>
       </Block>
 
-      <Block title="Adaptive Hash Index">
+      <Block title="Adaptive Hash Index" side="memory">
         <p>
-          동일한 형태의 인덱스 탐색이 반복되면 InnoDB 가 해당 탐색 경로에 대한 해시 인덱스를 자동으로
-          생성해, B+tree 를 루트부터 리프까지 내려가는 과정을 생략한다. 사용자가 생성하거나 지정하는
-          대상이 아니라 접근 패턴에 따라 만들어진다.
+          페이지가 전부 버퍼 풀에 있어도, B+tree 통해 루트부터 리프까지 내려가는 탐색 자체에는
+          비용이 든다. 동일한 형태의 탐색이 반복되면 InnoDB 가 해당 경로에 대한 해시 인덱스를
+          자동으로 생성해 이 과정을 생략한다. 사용자가 생성하거나 지정하는 대상이 아니라 접근
+          패턴에 따라 만들어진다.
         </p>
         <p>
-          버퍼 풀에 올라온 페이지를 기준으로 만들어지므로 디스크에 저장되지 않는다. 재시작하면 사라지고
-          이후 접근 패턴에 따라 다시 생성된다. 등호 조건 탐색에만 사용되고 범위 조건에는 사용되지
-          않는다. 동시성이 높은 환경에서는 이 구조를 보호하는 래치가 경합을 일으켜, 비활성화하는 편이
-          빠른 경우도 있다.
-        </p>
-      </Block>
-
-      <Block title="Log Buffer · Redo Log">
-        <p>
-          같은 redo 로그의 메모리 영역과 파일이다. 페이지를 변경하기 전에 변경 내용을 먼저 기록하는
-          방식을 <b>WAL</b>(Write-Ahead Logging) 이라 하고, 그 기록 단위가 redo 레코드다. 레코드마다
-          <b>LSN</b> 이라는 일련번호가 붙고, 각 페이지에도 마지막으로 반영된 LSN 이 저장돼 있어 복구
-          시점에 어디까지 적용됐는지 판별한다.
-        </p>
-        <p>
-          로그 버퍼의 내용이 파일로 기록되는 시점은 커밋 시점, 약 1초 주기, 버퍼 사용량이 임계치를
-          넘을 때, 그리고 해당 LSN 의 페이지를 디스크에 기록하기 직전이다. 커밋 시점의 동작은{' '}
-          <Var name="innodb_flush_log_at_trx_commit" /> 이 결정한다. 기본값 1 은 매 커밋마다 fsync 까지
-          수행하고, 2 는 OS 에 쓰기만 요청하며, 0 은 약 1초 주기로만 기록한다.
-        </p>
-        <p>
-          redo 파일은 고정된 크기를 순환하며 재사용한다. 데이터 파일에 이미 반영된 구간은 덮어써도
-          되며, 그 경계가 <b>체크포인트 LSN</b> 이다. 더티 페이지 기록이 지연되면 체크포인트 LSN 이
-          진행하지 못하고 재사용 가능한 구간이 없어져 쓰기가 대기 상태가 된다. 더티 페이지 flush 와
-          redo 공간 확보는 이렇게 연결돼 있다.
+          버퍼 풀에 올라온 페이지를 기준으로 만들어지므로 디스크에 저장되지 않는다. 재시작하면
+          사라지고 이후 접근 패턴에 따라 다시 생성된다. 등호 조건 탐색에만 사용되고 범위 조건에는
+          사용되지 않는다. 동시성이 높은 환경에서는 이 구조를 보호하는 래치가 경합을 일으켜,
+          비활성화하는 편이 빠른 경우도 있다.
         </p>
       </Block>
 
-      <Block title="Undo Tablespaces">
+      <Block title="Log Buffer · Redo Log" side="both">
+        <p>
+          페이지를 변경하기 전에 변경 내용을 먼저 기록하는 방식을 <b>WAL</b>(Write-Ahead Logging) 이라 하고, 
+          그 기록 단위가 redo 레코드다. 레코드마다{' '}<b>LSN</b> 이라는 일련번호가 붙고, 각 페이지에도 
+          마지막으로 반영된 LSN 이 저장돼 있어 복구 시점에 어디까지 적용됐는지 판별한다.
+        </p>
+
+        <Sub title="로그 버퍼를 파일에 기록하는 시점">
+          <p>
+            커밋을 완료로 인정하려면 그 시점까지의 redo 가 디스크에 안전하게 반영돼 있어야
+            하므로 로그 버퍼는 <b>커밋</b>이 주된 기록 시점이며 그 밖에도 3가지가 있다.
+          </p>
+          <ul className="doc-steps">
+            <li>
+              <b>커밋</b> — 해당 트랜잭션의 redo 를 파일에 기록한다.{' '}<Var name="innodb_flush_log_at_trx_commit" /> 값에 의해 Durability 수준이 정해진다.
+              <div className="note">
+                <b>참고</b>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>값</th>
+                      <th>커밋 시 동작</th>
+                      <th>안전 범위</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>1 (기본)</td>
+                      <td>write + fsync</td>
+                      <td>OS 레벨까지 안전</td>
+                    </tr>
+                    <tr>
+                      <td>2</td>
+                      <td>write만, fsync는 1초 주기</td>
+                      <td>DB 레벨까지만 안전</td>
+                    </tr>
+                    <tr>
+                      <td>0</td>
+                      <td>둘 다 1초 주기에 위임</td>
+                      <td>안전 범위 없음</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p>2 와 0 은 <b>Durability</b> 를 일부 포기하고 처리량을 얻는 선택이다.</p>
+              </div>        
+            </li>
+            <li>
+              <b>약 1초 주기</b> — 백그라운드 스레드가 커밋 여부와 무관하게 주기적으로 기록한다. 위의 0
+              · 2 설정에서 실제로 파일에 닿는 경로가 이것이다.
+            </li>
+            <li>
+              <b>버퍼 사용량</b> — 로그 버퍼(<Var name="innodb_log_buffer_size" />)가 절반쯤 차면 기록해
+              공간을 비운다.
+              <p className="note">
+                <b>참고</b> — 한 트랜잭션에서 변경(INSERT · UPDATE)이 많으면 그만큼 redo 로그가 쌓인다.{' '}
+                <Var name="innodb_log_buffer_size" />가 작으면 커밋 전에 버퍼가 여러 번 차게되어 
+                flush가 반복되어 성능이 떨어지게 된다.
+              </p>
+            </li>
+            <li>
+              <b>WAL 규칙</b> — 어떤 페이지를 디스크에 기록하기 직전, 그 페이지의 LSN 까지의 redo 를
+              먼저 기록한다. 버퍼 풀의 flush 가 로그 버퍼의 flush 를 끌어내는 경우다.
+            </li>
+          </ul>
+        </Sub>
+
+        <Sub title="Redo Log 공간 — 순환과 체크포인트">
+          <p>
+            redo 파일은 고정된 크기(<Var name="innodb_redo_log_capacity" />)를 순환하며 재사용한다.
+            데이터 파일에 이미 반영된 구간을 덮어쓰게 되고, 그 경계가 <b>체크포인트 LSN</b> 이다.
+          </p>
+          <p>
+            고정적인 Redo log의 <b>사용 가능한 공간 확보</b>는 <b>Buffer pool</b>를 통해 일어난다. 
+            <b>Dirty Page</b>가 <b>flush</b> 돼야 체크포인트 LSN 이 전진하고, 그만큼 재사용할 수 있게 된다. 
+            이게 밀리면 redo 공간이 바닥나 쓰기가 대기 상태가 되는데, 앞의 <b>체크포인트 지연 방지</b>
+            항목이 다루는 상황이 바로 이거다.
+          </p>
+        </Sub>
+      </Block>
+
+      <Block title="Undo Tablespaces" side="disk">
         <p>
           행을 변경하기 전의 값을 기록하는 영역이며, 두 가지 용도로 쓰인다. ROLLBACK 은 이 기록을 역순
           으로 적용해 변경을 취소하고, MVCC 는 같은 기록을 따라가 각 트랜잭션 시점에 해당하는 이전
@@ -253,7 +313,7 @@ export function ComponentsChapter() {
         </p>
       </Block>
 
-      <Block title="Tablespaces">
+      <Block title="Tablespaces" side="disk">
         <p>
           행과 인덱스가 저장되는 파일이다. 기본 설정인 <b>file-per-table</b> 에서는 테이블마다{' '}
           <code>.ibd</code> 파일이 하나씩 생성되고, 그 안에 클러스터드 인덱스와 세컨더리 인덱스가 함께
@@ -262,7 +322,7 @@ export function ComponentsChapter() {
         <p>파일 내부가 세그먼트 · 익스텐트 · 페이지로 나뉘는 구조는 다음 장에서 다룬다.</p>
       </Block>
 
-      <Block title="Doublewrite Buffer">
+      <Block title="Doublewrite Buffer" side="disk">
         <p>
           더티 페이지를 <code>.ibd</code> 의 원래 위치에 기록하기 전에, 같은 내용을 이 영역에 먼저
           기록한다. 기록 도중 장애가 발생해 16KB 페이지 중 일부만 기록된 <b>부분 기록 페이지</b>가

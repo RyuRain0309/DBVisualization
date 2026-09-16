@@ -1023,6 +1023,12 @@ body {
   font-size: 11.5px;
 }
 
+.welcome__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .button--large {
   font-size: 14px;
   padding: 11px 34px;
@@ -1798,8 +1804,38 @@ body {
 }
 
 .doc-block h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   margin: 0 0 8px;
   font-size: 15px;
+}
+
+/* Which side of the architecture diagram this component sits on. */
+.doc-side {
+  flex: none;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+  background: var(--bg-raised);
+}
+
+.doc-side--memory {
+  border-color: rgba(37, 99, 235, 0.3);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.doc-side--disk {
+  border-color: var(--border-strong);
+}
+
+.doc-block h3 .doc-side + .doc-side {
+  margin-left: -4px;
 }
 
 .doc-block p {
@@ -1915,7 +1951,55 @@ body {
 }
 
 .note > b:first-child {
+  display: inline-block;
+  margin-bottom: 5px;
   color: var(--text);
+}
+
+.note > p {
+  margin: 6px 0 0;
+}
+
+.note table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 11.5px;
+}
+
+.note th,
+.note td {
+  padding: 6px 9px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+
+.note thead th {
+  background: var(--bg-raised);
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.note tbody tr:last-child th,
+.note tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.note tbody td:first-child {
+  font-family: var(--mono);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.note tbody td:nth-child(2) {
+  font-family: var(--mono);
+  white-space: nowrap;
 }
 
 .doc-note__tag {
