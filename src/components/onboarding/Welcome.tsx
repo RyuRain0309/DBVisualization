@@ -1,11 +1,10 @@
 import { AppMark } from './AppMark';
-import { useEngineStore } from '../../store/engineStore';
+import { useRoute } from '../../router';
 
 const KEYWORDS = ['B+tree', '레코드 · 갭 락', 'redo / undo', 'MVCC'];
 
 export function Welcome() {
-  const start = useEngineStore((state) => state.start);
-  const openDocs = useEngineStore((state) => state.openDocs);
+  const [, navigate] = useRoute();
 
   return (
     <div className="welcome">
@@ -23,10 +22,10 @@ export function Welcome() {
         </ul>
 
         <div className="welcome__actions">
-          <button type="button" className="button button--primary button--large" onClick={start}>
+          <button type="button" className="button button--primary button--large" onClick={() => navigate({ view: 'app', param: null })}>
             시작하기
           </button>
-          <button type="button" className="button button--large" onClick={openDocs}>
+          <button type="button" className="button button--large" onClick={() => navigate({ view: 'docs', param: null })}>
             문서
           </button>
         </div>

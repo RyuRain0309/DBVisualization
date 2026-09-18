@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ArchitectureView } from '../architecture/ArchitectureView';
 import { DocsView } from '../docs/DocsView';
 import { BTreeCanvas } from '../btree-view/BTreeCanvas';
@@ -16,6 +16,7 @@ import { ResultTable } from '../sql-console/ResultTable';
 import { StepControls } from '../sql-console/StepControls';
 import { SessionOverview } from '../session/SessionOverview';
 import { useEngineStore } from '../../store/engineStore';
+import { useRoute } from '../../router';
 import {
   WorkspaceTabs,
   tabDefinitions,
@@ -27,7 +28,7 @@ import type { EngineSnapshot } from '../../engine/executor/events';
 const CAPACITIES = [3, 4, 5, 6, 8];
 
 export function AppShell() {
-  const view = useEngineStore((state) => state.view);
+  const [route, navigate] = useRoute();
   const steps = useEngineStore((state) => state.steps);
   const cursor = useEngineStore((state) => state.cursor);
   const database = useEngineStore((state) => state.database);
@@ -41,12 +42,17 @@ export function AppShell() {
   const setPageCapacity = useEngineStore((state) => state.setPageCapacity);
   const reset = useEngineStore((state) => state.reset);
 
-  const [tab, setTab] = useState<WorkspaceTab>('console');
+  const tabs = tabDefinitions(snapshot);
+  // The tab lives in the URL so a reload lands back on the same panel.
+  const tab: WorkspaceTab = tabs.some((entry) => entry.id === route.param)
+    ? (route.param as WorkspaceTab)
+    : 'console';
+  const setTab = (next: WorkspaceTab) => navigate({ view: 'app', param: next });
   const currentEvent = steps[cursor]?.event ?? null;
   const highlight = highlightOf(currentEvent);
 
-  if (view === 'docs') return <DocsView />;
-  if (view === 'welcome') return <Welcome />;
+  if (route.view === 'docs') return <DocsView />;
+  if (route.view === 'welcome') return <Welcome />;
 
   const waitingSessions = snapshot.sessions.filter((session) => session.waitingForTxId !== null);
   const openTransactions = snapshot.sessions.filter((session) => session.transaction !== null);
@@ -97,7 +103,7 @@ export function AppShell() {
 
       <main className="workspace">
         <WorkspaceTabs
-          tabs={tabDefinitions(snapshot)}
+          tabs={tabs}
           active={tab}
           flagged={tabForEvent(currentEvent)}
           onSelect={setTab}

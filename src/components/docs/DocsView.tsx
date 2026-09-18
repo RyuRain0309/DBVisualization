@@ -1,21 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { AppMark } from '../onboarding/AppMark';
 import { CHAPTERS } from './chapters';
-import { useEngineStore } from '../../store/engineStore';
+import { useRoute } from '../../router';
 
 /**
  * The reader shows one chapter at a time rather than one long scroll: each chapter is a whole
  * idea, and jumping back to the top of a 5000px page after every nav click reads worse.
  */
 export function DocsView() {
-  const closeDocs = useEngineStore((state) => state.closeDocs);
-  const start = useEngineStore((state) => state.start);
+  const [route, navigate] = useRoute();
 
-  const [activeId, setActiveId] = useState(CHAPTERS[0]!.id);
+  // An unknown chapter in the URL falls back to the first one rather than rendering nothing.
   const index = Math.max(
     0,
-    CHAPTERS.findIndex((chapter) => chapter.id === activeId),
+    CHAPTERS.findIndex((entry) => entry.id === route.param),
   );
+  const activeId = CHAPTERS[index]!.id;
+  const openChapter = (id: string) => navigate({ view: 'docs', param: id });
   const chapter = CHAPTERS[index]!;
   const previous = CHAPTERS[index - 1];
   const next = CHAPTERS[index + 1];
@@ -28,7 +29,7 @@ export function DocsView() {
   return (
     <div className="docs">
       <header className="docs__bar">
-        <button type="button" className="button" onClick={closeDocs}>
+        <button type="button" className="button" onClick={() => navigate({ view: 'welcome', param: null })}>
           ← 처음으로
         </button>
         <div className="docs__brand">
@@ -36,7 +37,7 @@ export function DocsView() {
           <strong>문서</strong>
           <span>InnoDB 가 데이터를 어디에 어떻게 두는지</span>
         </div>
-        <button type="button" className="button button--primary" onClick={start}>
+        <button type="button" className="button button--primary" onClick={() => navigate({ view: 'app', param: null })}>
           시작하기
         </button>
       </header>
@@ -48,7 +49,7 @@ export function DocsView() {
               key={entry.id}
               type="button"
               className={`docs__link ${entry.id === activeId ? 'docs__link--active' : ''}`}
-              onClick={() => setActiveId(entry.id)}
+              onClick={() => openChapter(entry.id)}
             >
               <span className="docs__num">{String(position + 1).padStart(2, '0')}</span>
               <span className="docs__link-text">
@@ -71,14 +72,14 @@ export function DocsView() {
 
             <nav className="doc__pager">
               {previous ? (
-                <button type="button" className="button" onClick={() => setActiveId(previous.id)}>
+                <button type="button" className="button" onClick={() => openChapter(previous.id)}>
                   ← {previous.title}
                 </button>
               ) : (
                 <span />
               )}
               {next && (
-                <button type="button" className="button" onClick={() => setActiveId(next.id)}>
+                <button type="button" className="button" onClick={() => openChapter(next.id)}>
                   {next.title} →
                 </button>
               )}

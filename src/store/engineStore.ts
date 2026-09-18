@@ -3,9 +3,6 @@ import type { EngineSnapshot, ExecutionStep } from '../engine/executor/events';
 import { DEFAULT_PAGE_CAPACITY, Database } from '../engine/transaction/database';
 import type { Session } from '../engine/transaction/session';
 
-/** Which top-level screen is on: the landing page, the docs reader, or the workspace. */
-export type AppView = 'welcome' | 'docs' | 'app';
-
 export interface ConsoleState {
   sessionId: number;
   name: string;
@@ -38,11 +35,6 @@ interface EngineState {
   /** Index of the step currently shown; -1 means "nothing executed yet". */
   cursor: number;
   stepwise: boolean;
-  view: AppView;
-
-  start: () => void;
-  openDocs: () => void;
-  closeDocs: () => void;
   run: (sessionId: number) => void;
   runSql: (sessionId: number, sql: string) => void;
   checkpoint: () => void;
@@ -82,11 +74,6 @@ function freshDatabase(pageCapacity: number) {
 export const useEngineStore = create<EngineState>((set, get) => ({
   ...freshDatabase(DEFAULT_PAGE_CAPACITY),
   stepwise: false,
-  view: 'welcome',
-
-  start: () => set({ view: 'app' }),
-  openDocs: () => set({ view: 'docs' }),
-  closeDocs: () => set({ view: 'welcome' }),
 
   setSql: (sessionId, sql) =>
     set({
