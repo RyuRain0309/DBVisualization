@@ -298,7 +298,7 @@ export function ComponentsChapter() {
         <p>
           행을 변경하기 전의 값을 기록하는 영역이며, 두 가지 용도로 쓰인다. <b>ROLLBACK</b> 은 이 기록을 역순
           으로 적용해 변경을 취소하고, <b>MVCC</b> 는 같은 기록을 따라가 각 트랜잭션 시점에 해당하는 이전
-          버전을 읽는다. 후자 덕분에 읽기가 락을 획득하지 않고 수행된다.
+          버전을 읽는다.
         </p>
         <p>
           undo 레코드는 undo 로그 페이지에 저장되고, 이 페이지 역시 다른 페이지와 동일하게 버퍼 풀을
@@ -322,21 +322,59 @@ export function ComponentsChapter() {
       </Block>
 
       <Block title="Doublewrite Buffer" side="disk">
-        <p>
-          더티 페이지를 <code>.ibd</code> 의 원래 위치에 기록하기 전에, 같은 내용을 이 영역에 먼저
-          기록한다. 기록 도중 장애가 발생해 16KB 페이지 중 일부만 기록된 <b>부분 기록 페이지</b>가
-          생기면 이 사본으로 복구한다.
-        </p>
-        <p>
-          redo 로는 이 상황을 복구할 수 없다. redo 레코드는 손상되지 않은 페이지에 변경을 적용하는
-          형태로 기록되므로, 페이지 자체가 손상되면 적용 대상이 성립하지 않는다. 그래서 로그가 아닌
-          페이지 사본이 필요하다.
-        </p>
-        <p>
-          쓰기가 두 번 발생하지만 첫 번째 기록은 순차 쓰기로 묶여 처리되므로 추가 비용은 두 배가 되지
-          않는다. 8.0.20 부터는 시스템 테이블스페이스가 아니라 별도 파일(<code>*.dblwr</code>)에
-          저장된다.
-        </p>
+        <Sub title="문제 — 16KB 쓰기는 원자적이지 않다">
+          <p>
+            디스크와 OS 가 원자성을 보장하는 단위는 보통 512B 나 4KB 다. InnoDB 페이지는 16KB 라
+            물리적으로는 블록 여러 개로 나뉘어 나간다. 그 도중에 전원이 나가면 이런 페이지가 남는다.
+          </p>
+          <div className="torn">
+            <span className="torn__block torn__block--new">4KB 새 내용</span>
+            <span className="torn__block torn__block--new">4KB 새 내용</span>
+            <span className="torn__block torn__block--old">4KB 옛 내용</span>
+            <span className="torn__block torn__block--old">4KB 옛 내용</span>
+          </div>
+          <p>
+            새 버전도 옛 버전도 아닌, 존재한 적 없는 상태다. 이것을 <b>부분 기록 페이지</b>(torn page)
+            라고 한다. 페이지에 저장된 체크섬이 맞지 않으므로 InnoDB 가 알아채기는 하지만, 알아채는
+            것과 복구하는 것은 다른 문제다.
+          </p>
+          <p>
+            redo 로는 복구되지 않는다. redo 레코드는 "페이지 N 의 이 자리를 이렇게 바꿔라" 형태로{' '}
+            <b>온전한 페이지를 출발점으로 삼아야</b> 적용된다. 즉 위와 같은 상태의 페이지에는 적용할 수 없다.
+          </p>
+        </Sub>
+
+        <Sub title="해법 — 쓰기 전에 사본을 남긴다">
+          <p>더티 페이지를 기록할 때 두 번에 나눠 쓴다.</p>
+          <ol className="doc-steps">
+            <li>
+              <b>사본</b> — 페이지를 doublewrite 영역에 먼저 기록한다.
+            </li>
+            <li>
+              <b>본 기록</b> — 그다음 <code>.ibd</code> 의 원래 위치에 기록한다.
+            </li>
+          </ol>
+          <p>이러면 어느 쪽에서 장애가 나든 온전한 페이지가 한 쪽에는 남는다.</p>
+          <ul className="doc-steps">
+            <li>
+              <b>사본 기록 중 장애 복구</b> — <code>.ibd</code> 의 페이지는 아직 건드리지 않은 완전한 상태로 
+              이를 기반으로 redo 를 적용하여 복구한다.
+            </li>
+            <li>
+              <b>본 기록 중 장애</b> — <code>.ibd</code> 는 찢어졌지만 doublewrite(사본)은 완성돼 있다.
+              그것으로 덮어쓴 뒤 redo 를 적용하여 복구한다.
+            </li>
+          </ul>
+          <div className="note">
+            <b>참고</b>
+            <p>
+              doublewrite 영역은 연속된 구간으로 여러 페이지를 모아 <b>순차 쓰기</b>로 처리된다.
+              파일 곳곳에 흩어진 <code>.ibd</code> 의 <b>랜덤 쓰기</b>에 비해 비용이 저렴하여 큰 부담은 없지만,
+              하드웨어가 페이지 크기 이상의 원자적 쓰기를 보장하는 환경에서는{' '}
+              <code>innodb_doublewrite=0</code> 으로 끄기도 한다.
+            </p>
+          </div>
+        </Sub>
       </Block>
 
       <Block title="변경이 처리되는 순서">
