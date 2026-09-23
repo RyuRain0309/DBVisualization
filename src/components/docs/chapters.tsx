@@ -5,7 +5,9 @@ import { MvccChapter } from './MvccChapter';
 import { OptimizerChapter } from './OptimizerChapter';
 import { PageChapter } from './PageChapter';
 import { RecordChapter } from './RecordChapter';
+import { SegmentChapter } from './SegmentChapter';
 import { StorageChapter } from './StorageChapter';
+import { TablespaceChapter } from './TablespaceChapter';
 
 export interface Chapter {
   id: string;
@@ -25,8 +27,20 @@ export const CHAPTERS: Chapter[] = [
   {
     id: 'storage',
     title: '저장 구조 계층',
-    blurb: '파일 → 세그먼트 → 익스텐트 → 페이지 → 행',
+    blurb: '.ibd 파일 내부가 나뉘는 단위',
     Body: StorageChapter,
+  },
+  {
+    id: 'tablespace',
+    title: '테이블스페이스 내부 구조',
+    blurb: '.ibd 파일 하나에 무엇이 들어가는지',
+    Body: TablespaceChapter,
+  },
+  {
+    id: 'segment',
+    title: '세그먼트 · 익스텐트 구조',
+    blurb: '공간을 나누는 단위와 소유하는 단위',
+    Body: SegmentChapter,
   },
   {
     id: 'page',
