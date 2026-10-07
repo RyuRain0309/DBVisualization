@@ -92,14 +92,14 @@ export function ComponentsChapter() {
                 <span>페이지 변경 내용. 장애 복구용</span>
               </div>
 
-              <div className="map__cell map__cell--mem map__cell--solo">
+              <div className="map__cell map__cell--mem">
                 <b>Change Buffer</b>
                 <span>버퍼 풀에 없는 세컨더리 인덱스 페이지의 변경을 모아 둔다</span>
               </div>
-              <span />
-              <div className="map__cell map__cell--disk map__cell--solo">
-                <b>Doublewrite</b>
-                <span>제자리에 쓰기 전 페이지를 통째로 복사해 둔다</span>
+              <span className="map__flow map__flow--both" />
+              <div className="map__cell map__cell--disk">
+                <b>System Tablespace (ibdata1)</b>
+                <span>Change Buffer 의 B+tree 가 저장되는 파일</span>
               </div>
 
               <div className="map__cell map__cell--mem map__cell--solo">
@@ -107,7 +107,10 @@ export function ComponentsChapter() {
                 <span>반복되는 탐색 경로를 해시로 대신한다</span>
               </div>
               <span />
-              <span />
+              <div className="map__cell map__cell--disk map__cell--solo">
+                <b>Doublewrite</b>
+                <span>제자리에 쓰기 전 페이지를 통째로 복사해 둔다</span>
+              </div>
             </div>
           </section>
 
@@ -185,7 +188,7 @@ export function ComponentsChapter() {
         </Sub>
       </Block>
 
-      <Block title="Change Buffer" side="memory">
+      <Block title="Change Buffer" side="both">
         <p>
           세컨더리 인덱스는 값이 무작위로 흩어져 있어, INSERT 시 갱신할 페이지가 버퍼 풀에 없는
           경우가 잦다. Change Buffer 는 이때 페이지를 읽지 않고 <b>변경 내용만</b> 기록해 두었다가,
@@ -196,7 +199,15 @@ export function ComponentsChapter() {
           대상은 <b>비유니크 세컨더리 인덱스</b>뿐이다. 클러스터드 인덱스는 행 자체를 변경해야 하고,
           유니크 인덱스는 중복 검사가 필요해 페이지를 읽어야하기 때문이다.
         </p>
-        <p>버퍼 풀의 일부를 사용하며 비율은{' '}<Var name="innodb_change_buffer_max_size" /> 로 정한다.
+        <p>
+          Change Buffer 역시 B+tree 기에, 페이지 단위로 <b>시스템 테이블스페이스</b>(<code>ibdata1</code>)에 저장된다. 
+          이 B+tree 의 페이지도 다른 페이지와 동일하게 버퍼 풀에 올라와 변경되고, 그 변경은 redo 레코드로 기록된 뒤 
+          <code>ibdata1</code> 로 flush 된다. 그래서 flush 전에 장애가 나도 redo 로 복구되고, 
+          재시작 후에도 아직 병합하지 않은 변경이 사라지지 않는다.
+        </p>
+        <p>
+          버퍼 풀에서 Change Buffer 의 페이지가 차지할 수 있는 최대 비율은{' '}
+          <Var name="innodb_change_buffer_max_size" /> 로 정한다.
         </p>
       </Block>
 
