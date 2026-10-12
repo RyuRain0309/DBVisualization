@@ -87,7 +87,7 @@ function IndexPairDiagram() {
         클러스터드 인덱스 — PRIMARY KEY (id)
       </text>
       <text className="pairmap__title pairmap__title--secondary" x="310" y="14">
-        세컨더리 인덱스 — KEY idx_email (email)
+        세컨더리 인덱스 — KEY (email)
       </text>
 
       <path className="pairmap__edge" d="M135 60 L67 110" />

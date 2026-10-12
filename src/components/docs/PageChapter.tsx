@@ -67,7 +67,7 @@ const ZONES: Zone[] = [
     id: 'trailer',
     name: 'File Trailer',
     size: '8B',
-    role: '체크섬과 LSN 하위 4바이트. 헤더 값과 맞지 않으면 쓰다 만 페이지라는 뜻이다',
+    role: '체크섬과 LSN 하위 4 byte. 헤더 값과 맞지 않으면 쓰다 만 페이지라는 뜻이다',
     grow: 0,
     tone: 'head',
   },

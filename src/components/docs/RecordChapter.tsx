@@ -18,7 +18,7 @@ const FIELDS: Field[] = [
     name: 'NULL 비트맵',
     size: 'NULL 허용 컬럼 수 / 8B',
     tone: 'meta',
-    note: 'NULL 인 컬럼은 값 영역에 아무 바이트도 쓰지 않는다. 여기 비트 하나로 끝',
+    note: 'NULL 인 컬럼은 값 영역에 아무 byte 도 쓰지 않는다. 여기 비트 하나로 끝',
   },
   {
     name: '레코드 헤더',
@@ -55,7 +55,7 @@ export function RecordChapter() {
     <>
       <p className="doc-lead">
         <code>INSERT INTO users VALUES (10, 'a', 'a@x.com')</code> 를 실행하면 페이지 안에 이런 모양의
-        바이트 덩어리가 하나 생긴다. 내가 적은 값 말고도, 트랜잭션이 쓰라고 붙는 <strong>숨은 컬럼</strong>{' '}
+        byte 덩어리가 하나 생긴다. 내가 적은 값 말고도, 트랜잭션이 쓰라고 붙는 <strong>숨은 컬럼</strong>{' '}
         두 개가 함께 들어간다.
       </p>
 
@@ -116,7 +116,7 @@ export function RecordChapter() {
           세컨더리 인덱스가 그만큼 같이 커진다.
         </p>
         <p>
-          PK 를 아예 선언하지 않으면 InnoDB 가 <code>DB_ROW_ID</code> 6바이트짜리 숨은 키를 만들어 그걸로
+          PK 를 아예 선언하지 않으면 InnoDB 가 <code>DB_ROW_ID</code> 6 byte 짜리 숨은 키를 만들어 그걸로
           클러스터드 인덱스를 세운다. 눈에 안 보일 뿐, 클러스터드 인덱스가 없는 InnoDB 테이블은 없다.
         </p>
       </Block>
@@ -124,12 +124,12 @@ export function RecordChapter() {
       <Block title="긴 컬럼과 오버플로 페이지">
         <p>
           긴 TEXT · BLOB · VARCHAR 은 페이지 안에 다 못 들어간다. 행이 페이지 절반을 넘으면 긴 컬럼부터
-          <b> 오버플로 페이지</b>로 옮기고, 원래 자리엔 20바이트 포인터만 남긴다. DYNAMIC 행 포맷은 값을
-          통째로 내보내고, 옛 COMPACT 는 앞 768바이트를 페이지에 남긴다.
+          <b> 오버플로 페이지</b>로 옮기고, 원래 자리엔 20 byte 포인터만 남긴다. DYNAMIC 행 포맷은 값을
+          통째로 내보내고, 옛 COMPACT 는 앞 768 byte 를 페이지에 남긴다.
         </p>
         <Note>
           이 시뮬레이터의 레코드는 값과 <code>DB_TRX_ID</code> · <code>DB_ROLL_PTR</code> 만 들고 있다.
-          바이트 단위 인코딩과 오버플로 페이지는 다루지 않지만, 버전 체인과 purge 는 실제와 같은 규칙으로
+          byte 단위 인코딩과 오버플로 페이지는 다루지 않지만, 버전 체인과 purge 는 실제와 같은 규칙으로
           움직인다 — Redo / Undo 탭에서 볼 수 있다.
         </Note>
       </Block>

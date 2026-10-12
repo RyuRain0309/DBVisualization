@@ -38,22 +38,22 @@ export function SegmentChapter() {
           <b>논리프 세그먼트</b>. 둘을 갈라 두면 리프 페이지끼리 디스크에서 모여 있게 되어, 범위 스캔이
           파일을 순서대로 훑을 수 있다. 섞여 있으면 행을 읽다 이정표를 건너뛰기를 반복해야 한다.
         </p>
-        <Figure caption="users 테이블에 PK 와 idx_email 이 있으면 세그먼트는 넷이다.">
+        <Figure caption="테이블에 PK 와 세컨더리 인덱스 하나가 있으면 세그먼트는 넷이다.">
           <ul className="segs">
             <li>
-              <b>PRIMARY</b>
+              <b><code>PRIMARY</code></b>
               <span>리프 세그먼트 — 행 전체가 든 페이지</span>
             </li>
             <li>
-              <b>PRIMARY</b>
+              <b><code>PRIMARY</code></b>
               <span>논리프 세그먼트 — 내려갈 자식을 가리키는 페이지</span>
             </li>
             <li>
-              <b>idx_email</b>
-              <span>리프 세그먼트 — email + PK 가 든 페이지</span>
+              <b>세컨더리 인덱스</b>
+              <span>리프 세그먼트 — 인덱스 컬럼 + PK 가 든 페이지</span>
             </li>
             <li>
-              <b>idx_email</b>
+              <b>세컨더리 인덱스</b>
               <span>논리프 세그먼트</span>
             </li>
           </ul>

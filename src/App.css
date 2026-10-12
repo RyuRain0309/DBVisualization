@@ -2366,8 +2366,10 @@ body {
   letter-spacing: 2px;
 }
 
-/* docs — one tablespace file */
+/* docs — one tablespace file, split into its segments */
 .tsp__file {
+  display: grid;
+  gap: 6px;
   padding: 10px;
   border: 1px solid var(--border-strong);
   border-radius: 8px;
@@ -2375,16 +2377,9 @@ body {
 }
 
 .tsp__name {
-  display: block;
-  margin-bottom: 8px;
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 600;
-}
-
-.tsp__slots {
-  display: grid;
-  gap: 4px;
 }
 
 .tsp__slot {
@@ -2393,23 +2388,744 @@ body {
   padding: 9px 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--leaf);
+  background: var(--bg-panel);
 }
 
 .tsp__slot--meta {
-  background: var(--bg-panel);
   border-style: dashed;
 }
 
-.tsp__slot b {
-  font-family: var(--mono);
+.tsp__slot--free {
+  border-style: dashed;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--bg-panel),
+    var(--bg-panel) 6px,
+    var(--bg-raised) 6px,
+    var(--bg-raised) 12px
+  );
+}
+
+.tsp__group {
+  display: grid;
+  gap: 5px;
+  padding: 8px 10px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg-panel);
+}
+
+.tsp__group-name {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.tsp__segs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.tsp__seg {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--internal);
+}
+
+.tsp__seg--leaf {
+  background: var(--leaf);
+}
+
+/* Stands for "and another pair for every further index" rather than a real segment. */
+.tsp__group--more {
+  border-style: dashed;
+  background: transparent;
+}
+
+.tsp__group--more .tsp__group-name {
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.tsp__seg--ghost {
+  border-style: dashed;
+  background: transparent;
+  color: var(--text-dim);
+}
+
+.tsp__seg--ghost b {
+  font-weight: 400;
+}
+
+.tsp__slot b,
+.tsp__seg b {
   font-size: 12px;
 }
 
-.tsp__slot em {
+.tsp__slot em,
+.tsp__seg em {
   font-style: normal;
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* docs — management pages, fixed position vs growing */
+.pagelist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.pagelist li {
+  display: grid;
+  grid-template-columns: 52px 148px 1fr;
+  gap: 10px;
+  align-items: baseline;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+}
+
+.pagelist__tag {
+  padding: 2px 0;
+  border-radius: 999px;
+  text-align: center;
+  font-size: 10.5px;
+  background: var(--bg-raised);
+  color: var(--text-dim);
+}
+
+.pagelist__tag--always {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.pagelist li b {
+  font-size: 12.5px;
+}
+
+.pagelist li code {
+  margin-right: 5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg-raised);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text);
+}
+
+.pagelist li > span:last-child {
+  color: var(--text-dim);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* docs — inside page 0: the header, then one 40-byte slot per extent */
+.fsp {
+  display: grid;
+  gap: 10px;
+}
+
+.fsp__page {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-panel);
+}
+
+.fsp__page-name {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fsp__head,
+.fsp__table {
+  display: grid;
+  gap: 6px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-raised);
+}
+
+.fsp__head > b,
+.fsp__table > b {
+  font-size: 12px;
+}
+
+.fsp__head > b em,
+.fsp__table > b em {
+  margin-left: 6px;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.fsp__head-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.fsp__head-list li {
+  display: grid;
+  grid-template-columns: 140px 30px 1fr;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: var(--bg-panel);
+  font-size: 11.5px;
+}
+
+/* Room for the long IBUF_BITMAP_* names. */
+.fsp__head-list--wide li {
+  grid-template-columns: 170px 30px 1fr;
+}
+
+.fsp__head-list li em {
+  font-style: normal;
+  color: var(--text-dim);
+}
+
+/* Byte width of one field. Kept in its own column so the sizes read as a column of numbers. */
+.fsp__head-list li i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 10px;
+  text-align: right;
+  color: var(--accent);
+}
+
+/* The five list heads: the entries themselves live out in the slots below. */
+.fsp__head-list .is-list {
+  border-left: 2px solid var(--accent);
+}
+
+.fsp__rows {
+  display: grid;
+  gap: 3px;
+}
+
+/* The 38-byte page header and 8-byte trailer every page carries, drawn to scale-ish. */
+.fsp__fil {
+  padding: 4px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 5px;
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.fsp__spare {
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--bg-panel),
+    var(--bg-panel) 6px,
+    var(--bg-raised) 6px,
+    var(--bg-raised) 12px
+  );
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.fsp__chain {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+
+.fsp__chain-title {
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.fsp__chain-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.fsp__chain-node {
+  display: grid;
+  gap: 2px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  font-size: 11.5px;
+}
+
+.fsp__chain-node em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+/* How the slot's byte offset is arrived at, kept beside the readable slot number. */
+.fsp__chain-node i {
+  margin-left: 6px;
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent);
+}
+
+.fsp__chain-node--head {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.fsp__chain-link {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+/* docs — one segment growing: scattered borrowed pages first, then whole extents of its own */
+.lifecycle {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.lifecycle__stage {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-panel);
+}
+
+.lifecycle__stage > b {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.lifecycle__stage > b em {
+  font-style: normal;
+  font-weight: 400;
+  font-size: 10.5px;
+  color: var(--accent);
+}
+
+.lifecycle__stage > p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.lifecycle__extent {
+  display: grid;
+  gap: 3px;
+}
+
+.lifecycle__extent > span {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* 64 pages as an 16 × 4 block, so an extent reads as one unit rather than a long strip. */
+.lifecycle__cells {
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  gap: 2px;
+}
+
+.lifecycle__cells i,
+.lifecycle__legend i {
+  height: 9px;
+  border-radius: 2px;
+  background: var(--overlay-line);
+}
+
+.lifecycle__cells i.is-mine,
+.lifecycle__legend i.is-mine {
+  background: var(--accent);
+}
+
+.lifecycle__cells i.is-other,
+.lifecycle__legend i.is-other {
+  background: var(--border-strong);
+}
+
+.lifecycle__legend {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.lifecycle__legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lifecycle__legend i {
+  width: 9px;
+}
+
+/* docs — one page allocation as a sequence diagram: who is read, in what order */
+/*
+ * Two tracks per participant so a lifeline sits on a grid line and arrows can run line to line.
+ * The track count follows the participant list, so it is set inline.
+ */
+.seq {
+  display: grid;
+  grid-auto-rows: minmax(26px, auto);
+  row-gap: 6px;
+  /* Room for the last branch box, which hangs below its final row. */
+  padding-bottom: 30px;
+  font-size: 11px;
+}
+
+.seq__actor {
+  grid-row: 1;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  margin: 0 6px 6px;
+  padding: 6px 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  text-align: center;
+}
+
+.seq__actor b {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.seq__actor em {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.seq__actor--caller {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.seq__life {
+  position: relative;
+}
+
+.seq__life::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 1px dashed var(--border-strong);
+}
+
+/* A step boundary: everything below it until the next frame runs only if the step above missed. */
+.seq__frame {
+  grid-column: 1 / -1;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 3px 8px;
+  border-top: 1px dashed var(--accent);
+  background: linear-gradient(var(--bg-raised), transparent);
+}
+
+.seq__frame b {
+  font-size: 11.5px;
+}
+
+/* A branch: one box per alternative, so it is visible where each one starts and ends. */
+.seq__region {
+  grid-column: 1 / -1;
+  margin: 28px -8px -24px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+}
+
+/* A step inside a branch that only sometimes runs: inset from the branch box, dashed. */
+.seq__region--inner {
+  margin: 10px 0 -12px;
+  border-style: dashed;
+  border-color: var(--accent);
+}
+
+.seq__frame--branch,
+.seq__frame--boxed {
+  border-top: 0;
+  background: none;
+}
+
+/* The branch box's top margin plus 8px, so the title sits a little inside its border. */
+.seq__frame--branch {
+  margin-top: 36px;
+}
+
+/* 8px below the dashed box's top border, like the branch title above. */
+.seq__frame--boxed {
+  margin-top: 18px;
+}
+
+.seq__gap {
+  margin-top: 20px;
+}
+
+.seq__tag {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--accent);
+  color: var(--bg-panel);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* The decision itself: which answer leads into which box below. */
+.seq__fork {
+  grid-column: 1 / -2;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 8px;
+}
+
+.seq__fork span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-panel);
+  white-space: nowrap;
+}
+
+.seq__frame em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--accent);
+}
+
+/*
+ * Labels start at the sender and may run past the arrowhead: short hops like 세그먼트 → INODE
+ * would otherwise wrap into three lines, and the row has nothing else to collide with.
+ */
+.seq__msg {
+  position: relative;
+  z-index: 1;
+  align-self: end;
+  padding: 0 8px 5px;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.seq__msg--left,
+.seq__msg--end {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* The right-hand column: what each step means, next to the arrow that does it. */
+.seq__note,
+.seq__note-head {
+  grid-column: -2 / -1;
+  z-index: 1;
+  margin-left: 14px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+.seq__note-head {
+  grid-row: 1;
+  align-self: end;
+  margin-bottom: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.seq__note {
+  align-self: end;
+  padding-bottom: 1px;
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--text-dim);
+}
+
+.seq__msg::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-top: 1.5px solid var(--text-dim);
+}
+
+.seq__msg--reply {
+  color: var(--text-dim);
+}
+
+.seq__msg--reply::before {
+  border-top-style: dashed;
+}
+
+.seq__msg::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  border-top: 4.5px solid transparent;
+  border-bottom: 4.5px solid transparent;
+}
+
+.seq__msg--right::after {
+  right: -1px;
+  border-left: 7px solid var(--text-dim);
+}
+
+.seq__msg--left::after {
+  left: -1px;
+  border-right: 7px solid var(--text-dim);
+}
+
+/* docs — two record layouts side by side (INODE entry vs XDES slot) */
+.cmp {
+  display: grid;
+  gap: 10px;
+}
+
+.cmp__panel {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-raised);
+}
+
+.cmp__panel > b {
+  font-size: 12px;
+}
+
+.cmp__panel > b em {
+  margin-left: 6px;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.cmp__fields {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.cmp__fields li {
+  display: grid;
+  grid-template-columns: 1fr 30px;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: var(--bg-panel);
+  font-size: 11.5px;
+}
+
+.cmp__fields li i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 10px;
+  text-align: right;
+  color: var(--accent);
+}
+
+.cmp__fields li em {
+  grid-column: 1 / -1;
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+/* What differs between the two records, once their shape has been shown. */
+.cmp__diff {
+  display: grid;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+
+.cmp__diff-head,
+.cmp__diff-row {
+  display: grid;
+  grid-template-columns: 96px repeat(5, 1fr);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.cmp__diff-head {
+  background: var(--bg-raised);
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.cmp__diff-row {
+  border-top: 1px solid var(--border);
+}
+
+.cmp__diff-head > span,
+.cmp__diff-row > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 8px;
+  text-align: center;
+}
+
+.cmp__diff-head > span + span,
+.cmp__diff-row > span + span {
+  border-left: 1px solid var(--border);
+}
+
+.cmp__diff-row > span:first-child {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
 }
 
 /* docs — the four segments of a table */
@@ -2432,9 +3148,14 @@ body {
   background: var(--bg-panel);
 }
 
+/* PRIMARY is the literal key name; the generic label beside it is prose, so only code gets mono. */
 .segs li b {
-  font-family: var(--mono);
   font-size: 11.5px;
+}
+
+.segs li b code {
+  font-family: var(--mono);
+  font-size: 11px;
 }
 
 .segs li span {
@@ -2844,4 +3565,101 @@ body {
 
 .pairmap__hint--secondary {
   fill: var(--secondary-accent);
+}
+
+@media (max-width: 900px) {
+  .lifecycle {
+    grid-template-columns: 1fr;
+  }
+
+  /* No room to run labels past their arrows here, so let them wrap inside the span. */
+  .seq__msg {
+    white-space: normal;
+    font-size: 10px;
+  }
+
+  .seq__actor em {
+    display: none;
+  }
+
+  .docs__body {
+    grid-template-columns: 1fr;
+  }
+
+  .docs__nav {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .docs__link {
+    flex: none;
+  }
+
+  .docs__link-text em {
+    display: none;
+  }
+
+  .map__units,
+  .map__grid,
+  .tsp__segs,
+  .pagemap,
+  .pagemap__note,
+  .pagelist li,
+  .cmp__diff-head,
+  .cmp__diff-row,
+  .fsp__head-list li,
+  .fsp__head-list--wide li,
+  .segs li,
+  .grow__row,
+  .vzone__bar,
+  .vzone__ticks,
+  .vcase li,
+  .mvtl__head,
+  .mvtl__lane,
+  .pipe__stage,
+  .explain li,
+  .rec__field,
+  .note li {
+    grid-template-columns: 1fr;
+  }
+
+  .torn {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .map__col,
+  .map__cell--tall {
+    display: revert;
+  }
+
+  .map__cell--tall {
+    grid-row: auto;
+  }
+
+  .map__col {
+    display: none;
+  }
+
+  .map__flow {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .map__flow::after {
+    content: '▼';
+  }
+
+  .grow__label {
+    text-align: left;
+  }
+
+  .pipe__out {
+    justify-self: start;
+  }
+
+  .vcase li b {
+    text-align: left;
+  }
 }
