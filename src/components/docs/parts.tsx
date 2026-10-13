@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { formatHash } from '../../router';
 
 /** One numbered chapter body block: a heading plus prose. */
 /** Which side of the architecture diagram a component sits on; 'both' shows one badge each. */
@@ -16,14 +17,16 @@ function badgesFor(side: Side): Array<keyof typeof SIDE_LABEL> {
 export function Block({
   title,
   side,
+  id,
   children,
 }: {
   title: string;
   side?: Side;
+  id?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="doc-block">
+    <section className="doc-block" id={id}>
       <h3>
         {title}
         {side &&
@@ -78,6 +81,7 @@ const DEFAULTS: Record<string, string> = {
   innodb_old_blocks_pct: '37 (%)',
   innodb_old_blocks_time: '1000 (ms)',
   innodb_page_size: '16384 (16KB)',
+  innodb_read_ahead_threshold: '56 (장)',
   innodb_redo_log_capacity: '104857600 (100MB)',
 };
 
@@ -92,12 +96,24 @@ export function Var({ name }: { name: string }) {
 }
 
 /** A named subsection inside a Block, for when one component has two separate mechanisms. */
-export function Sub({ title, children }: { title: string; children: ReactNode }) {
+export function Sub({ title, id, children }: { title: string; id?: string; children: ReactNode }) {
   return (
-    <section className="doc-sub">
+    <section className="doc-sub" id={id}>
       <h4>{title}</h4>
       {children}
     </section>
+  );
+}
+
+/**
+ * A reference to another chapter that can be followed. `anchor` is the id given to a Block or Sub
+ * there; without it the link opens the chapter at the top.
+ */
+export function DocLink({ chapter, anchor, children }: { chapter: string; anchor?: string; children: ReactNode }) {
+  return (
+    <a className="doc-link" href={formatHash({ view: 'docs', param: chapter, anchor })}>
+      {children}
+    </a>
   );
 }
 

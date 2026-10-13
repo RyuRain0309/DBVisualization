@@ -425,7 +425,7 @@ export function TablespaceChapter() {
             </div>
           </Figure>
         </Sub>
-        <Sub title="페이지 할당">
+        <Sub title="페이지 할당" id="page-alloc">
           <p>
             B+tree는 분할 등으로 새 페이지가 필요하면 리프 · 논리프 중 해당하는
             세그먼트를 지정해 요청한다.

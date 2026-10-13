@@ -21,10 +21,14 @@ export function DocsView() {
   const previous = CHAPTERS[index - 1];
   const next = CHAPTERS[index + 1];
 
+  const anchor = route.anchor ?? null;
   const scroller = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    scroller.current?.scrollTo({ top: 0 });
-  }, [activeId]);
+    // A link from another chapter names the spot it means; anything else opens at the top.
+    const target = anchor ? document.getElementById(anchor) : null;
+    if (target && scroller.current?.contains(target)) target.scrollIntoView({ block: 'start' });
+    else scroller.current?.scrollTo({ top: 0 });
+  }, [activeId, anchor]);
 
   return (
     <div className="docs">

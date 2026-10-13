@@ -6,6 +6,8 @@ export interface Route {
   view: View;
   /** Chapter id for docs, workspace tab for the app; null means "whatever the default is". */
   param: string | null;
+  /** Element id inside a docs chapter to scroll to; absent means the top of the chapter. */
+  anchor?: string | null;
 }
 
 /**
@@ -15,18 +17,21 @@ export interface Route {
  *   #/            welcome
  *   #/docs        docs, first chapter
  *   #/docs/page   that chapter
+ *   #/docs/page/x that chapter, scrolled to the element with id x
  *   #/app         workspace, default tab
  *   #/app/locks   that tab
  */
 export function parseHash(hash: string): Route {
-  const [view, param] = hash.replace(/^#\/?/, '').split('/');
-  if (view === 'docs' || view === 'app') return { view, param: param || null };
+  const [view, param, anchor] = hash.replace(/^#\/?/, '').split('/');
+  if (view === 'docs') return { view, param: param || null, anchor: anchor || null };
+  if (view === 'app') return { view, param: param || null };
   return { view: 'welcome', param: null };
 }
 
 export function formatHash(route: Route): string {
   if (route.view === 'welcome') return '#/';
-  return route.param ? `#/${route.view}/${route.param}` : `#/${route.view}`;
+  if (!route.param) return `#/${route.view}`;
+  return route.anchor ? `#/${route.view}/${route.param}/${route.anchor}` : `#/${route.view}/${route.param}`;
 }
 
 function subscribe(onChange: () => void) {

@@ -1911,6 +1911,24 @@ body {
   color: var(--danger);
 }
 
+.doc-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: var(--accent-soft);
+  text-underline-offset: 3px;
+}
+
+.doc-link:hover,
+.doc-link:focus-visible {
+  text-decoration-color: var(--accent);
+}
+
+/* Targets of a DocLink: keep the heading clear of the top edge after the jump. */
+.doc-block[id],
+.doc-sub[id] {
+  scroll-margin-top: 20px;
+}
+
 .doc-sub {
   margin: 16px 0 0;
   padding-left: 12px;
