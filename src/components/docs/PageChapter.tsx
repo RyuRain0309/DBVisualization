@@ -1,5 +1,5 @@
 import { Fragment, useState } from "react";
-import { Block, DocLink, Figure, Note, Sub } from "./parts";
+import { Block, DocLink, Figure, Note, Sub, Fields, type Field } from "./parts";
 
 interface Zone {
   id: string;
@@ -72,9 +72,6 @@ const ZONES: Zone[] = [
     tone: "head",
   },
 ];
-
-/** One field of a fixed layout: identifier, size in bytes, what it holds, and what reads it. */
-type Field = [name: string, bytes: number | string, note: string, use?: string];
 
 const FILE_HEADER: Field[] = [
   [
@@ -356,41 +353,78 @@ export function PageChapter() {
 
         <Sub title="Page Directory">
           <p>
-            슬롯 하나는 2 byte 이고 <b>레코드 하나의 위치</b>(페이지 시작에서 몇
-            byte 인지)가 들어 있다. 슬롯은 페이지 끝에서부터 거꾸로 놓여, File
-            Trailer 바로 앞이 슬롯 0 이다. 개수는 <code>PAGE_N_DIR_SLOTS</code>{" "}
-            에 있다.
+            슬롯 하나는 2 byte로 <b>레코드 위치</b>가 저장되어 있다. 슬롯은
+            페이지 끝에서부터 거꾸로 놓여, File Trailer 바로 앞이 슬롯 0 이다.
+            개수는 <code>PAGE_N_DIR_SLOTS</code> 에 있다.
           </p>
           <p>
-            레코드마다 슬롯을 두지는 않는다. 키 순서 링크에서 레코드 4~8개마다
-            하나씩, 그 가운데 <b>한 레코드만</b> 슬롯이 가리킨다. 슬롯과 슬롯
-            사이에 있는 레코드는 어느 슬롯도 가리키지 않으므로, 앞 슬롯이
-            가리키는 레코드에서 링크를 따라가야 닿는다. 슬롯에 키 값은 없다.
+            실제 슬롯이 가리키는 위치는 <b>레코드 헤더와 값 사이</b>다. 그래서
+            바로 앞 5 byte 가 항상 헤더이고, 바로 뒤가 키 값이다. 가변적인
+            레코드 구조 속에서도 필요한 정보를 정해진 위치에서 바로 읽어 탐색할
+            수 있다. 자세한 레코드 구조는{" "}
+            <DocLink chapter="record">「레코드 내부 구조」</DocLink>에서 다룬다.
           </p>
           <p>
-            슬롯이 가리키는 레코드의 헤더(<code>n_owned</code>)에는 숫자가 하나
-            적힌다. 앞 슬롯이 가리키는 레코드 다음부터 자기까지, 레코드가 몇
-            개인지다. 슬롯이 가리키지 않는 레코드는 이 값이 0 이다.
+            InnoDB는 레코드마다 슬롯을 두지 않는다. 첫 슬롯은 <b>infimum</b> 을,
+            마지막 슬롯은 <b>supremum</b> 을 가리키고, 그 사이 슬롯들은 적절한
+            간격으로 레코드를 가리킨다. 슬롯이 가리키는 레코드는 헤더의{" "}
+            <code>n_owned</code> 에 "앞 슬롯이 가리키는 레코드 다음부터 나까지
+            레코드가 몇 개인지"를 적어 둔다. 이 값을 보고 슬롯 사이가 너무
+            벌어지면 슬롯을 나누고, 너무 좁아지면 합친다. 기준은 아래 표와 같다.
           </p>
-          <ul className="doc-steps">
-            <li>
-              <b>슬롯 0</b> — infimum 을 가리킨다. 앞에 레코드가 없으므로 이
-              숫자는 1 이다.
-            </li>
-            <li>
-              <b>가운데 슬롯</b> — 4~8. 자기를 포함한 수이므로, 앞 슬롯과의
-              사이에 있는 레코드는 3~7개다.
-            </li>
-            <li>
-              <b>마지막 슬롯</b> — supremum 을 가리킨다. 1~8. 역시 supremum 을
-              포함한 수다.
-            </li>
-          </ul>
-          <p>
-            삽입으로 이 숫자가 9 가 되면 그 사이에 슬롯을 하나 더 넣어 둘로
-            나눈다. 삭제로 4 밑이 되면 옆 슬롯의 위치를 한 레코드 옮겨 균형을
-            맞추거나, 슬롯 하나를 없애 두 구간을 합친다.
-          </p>
+          <table className="doc-table">
+            <thead>
+              <tr>
+                <th>레코드</th>
+                <th>n_owned</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>슬롯 0 이 가리키는 infimum</td>
+                <td>항상 1</td>
+              </tr>
+              <tr>
+                <td>가운데 슬롯이 가리키는 레코드</td>
+                <td>4 ~ 8</td>
+              </tr>
+              <tr>
+                <td>마지막 슬롯이 가리키는 supremum</td>
+                <td>1 ~ 8</td>
+              </tr>
+              <tr>
+                <td>슬롯이 가리키지 않는 레코드</td>
+                <td>0</td>
+              </tr>
+            </tbody>
+          </table>
+          <table className="doc-table">
+            <thead>
+              <tr>
+                <th>n_owned 가</th>
+                <th>처리</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>삽입으로 9 가 되면</td>
+                <td>
+                  구간 안의 레코드 하나를 가리키는 슬롯을 추가해, 4 와 5 로
+                  나눈다.
+                </td>
+              </tr>
+              <tr>
+                <td>삭제로 4 밑이 되면</td>
+                <td>
+                  옆 구간이 넉넉하면 슬롯 위치를 한 레코드 옮겨 균형을 맞추고,
+                  아니면 슬롯 하나를 없애 두 구간을 합친다.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <Figure caption="Cal 과 Lee 를 가리키는 두 슬롯 사이에 Hal 을 넣어 슬롯이 나뉘는 과정. 위는 키 순서로 늘어놓은 레코드와 슬롯, 아래는 페이지 끝에 놓인 슬롯 배열이다.">
+            <SlotSplitDemo />
+          </Figure>
         </Sub>
 
         <Sub title="File Trailer">
@@ -496,7 +530,8 @@ export function PageChapter() {
             데이터를 담는 데 페이지가 두 배 가까이 든다.
           </p>
           <p>
-            이를 해결하기 위해 Page Header 에 직전 삽입의 기록을 저장하여 처리한다.
+            이를 해결하기 위해 Page Header 에 직전 삽입의 기록을 저장하여
+            처리한다.
           </p>
           <ul className="doc-steps">
             <li>
@@ -512,11 +547,11 @@ export function PageChapter() {
             </li>
           </ul>
           <p>
-            삽입할 때마다 이 세 값을 고쳐 둔다. 그러다 페이지가 꽉 차 새 페이지가
-            필요해지면, 이 값으로 지금 삽입이 순차 삽입인지 판단한다. 새 레코드가{" "}
-            <code>PAGE_LAST_INSERT</code> 가 가리키는 레코드 바로 뒤, 곧 페이지의
-            끝에 들어가는 자리이고, 최근 삽입이 오른쪽으로 이어져 왔다면 순차
-            삽입으로 본다.
+            삽입할 때마다 이 세 값을 고쳐 둔다. 그러다 페이지가 꽉 차 새
+            페이지가 필요해지면, 이 값으로 지금 삽입이 순차 삽입인지 판단한다.
+            새 레코드가 <code>PAGE_LAST_INSERT</code> 가 가리키는 레코드 바로
+            뒤, 곧 페이지의 끝에 들어가는 자리이고, 최근 삽입이 오른쪽으로
+            이어져 왔다면 순차 삽입으로 본다.
           </p>
           <p>
             순차 삽입이면 <b>레코드 절반을 새 페이지로 옮기지 않는다</b>. 원래
@@ -528,8 +563,8 @@ export function PageChapter() {
             계속 커지면 새 페이지로 넘어갈 때 옮기는 레코드가 없고, 지나간
             페이지는 거의 꽉 찬 채로 남는다. 새 페이지도 지금 페이지 바로 다음
             번호로 받아 파일 안에서 이어져 놓인다. 랜덤 PK 는 가운데서 계속
-            나뉘어 페이지마다 빈자리가 생기므로, 같은 행 수를 담는 데 페이지가 더
-            많이 든다.
+            나뉘어 페이지마다 빈자리가 생기므로, 같은 행 수를 담는 데 페이지가
+            더 많이 든다.
           </p>
         </Sub>
         <Note>
@@ -539,42 +574,6 @@ export function PageChapter() {
         </Note>
       </Block>
     </>
-  );
-}
-
-/** A fixed layout as a table of fields, in the order they sit on the page. */
-function Fields({
-  title,
-  size,
-  rows,
-}: {
-  title: string;
-  size: string;
-  rows: Field[];
-}) {
-  return (
-    <div className="cmp">
-      <div className="cmp__panel">
-        <b>
-          {title}
-          <em>{size}</em>
-        </b>
-        <ul className="fieldrows">
-          {rows.map(([name, bytes, note, use]) => (
-            <li key={name}>
-              <div className="fieldrows__name">
-                <b>{name}</b>
-                <i>{bytes} byte</i>
-              </div>
-              <div className="fieldrows__body">
-                <p>{note}</p>
-                {use && <p className="fieldrows__use">{use}</p>}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
   );
 }
 
@@ -879,6 +878,248 @@ function HeapDemo() {
             {index + 1} / {HEAP_STEPS.length}
           </span>
           {index < HEAP_STEPS.length - 1 ? (
+            <button
+              type="button"
+              className="button button--primary"
+              onClick={() => setIndex(index + 1)}
+            >
+              다음 →
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="button"
+              onClick={() => setIndex(0)}
+            >
+              처음부터
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Keys of the slot-split example in key order; "…" stands for the records before slot 2. */
+const SPLIT_KEYS = [
+  "…",
+  "Cal",
+  "Dan",
+  "Eve",
+  "Fay",
+  "Gus",
+  "Hal",
+  "Ivy",
+  "Jay",
+  "Kim",
+  "Lee",
+  "Max",
+  "Ned",
+  "supremum",
+];
+
+interface SplitSlot {
+  name: string;
+  owned: number;
+  /** Slot added in this step. */
+  fresh?: boolean;
+}
+
+interface DirSlot {
+  name: string;
+  /** Key of the record this slot points at; empty while the slot is being made room for. */
+  target: string;
+  state?: "moved" | "fresh" | "empty";
+}
+
+interface SplitStep {
+  /** Key not yet in the page in this step. */
+  missing?: string;
+  /** Record inserted in this step. */
+  inserted?: string;
+  slots: Record<string, SplitSlot>;
+  /** Page Directory from the Free Space side to the File Trailer side. */
+  dir: DirSlot[];
+  title: string;
+  text: string;
+}
+
+const DIR_TAIL: DirSlot[] = [
+  { name: "슬롯 2", target: "Cal" },
+  { name: "…", target: "" },
+  { name: "슬롯 0", target: "infimum" },
+];
+
+const DIR_BEFORE: DirSlot[] = [
+  { name: "슬롯 4", target: "supremum" },
+  { name: "슬롯 3", target: "Lee" },
+  ...DIR_TAIL,
+];
+
+const SPLIT_STEPS: SplitStep[] = [
+  {
+    missing: "Hal",
+    slots: {
+      Cal: { name: "슬롯 2", owned: 4 },
+      Lee: { name: "슬롯 3", owned: 8 },
+      supremum: { name: "슬롯 4", owned: 3 },
+    },
+    dir: DIR_BEFORE,
+    title: "삽입 전",
+    text: "슬롯 2 는 Cal, 슬롯 3 은 Lee, 마지막 슬롯 4 는 supremum 을 가리킨다. Lee 의 n_owned 는 8 이다. Dan 부터 Lee 까지, 슬롯 3 이 맡은 레코드가 8개라는 뜻이다.",
+  },
+  {
+    inserted: "Hal",
+    slots: {
+      Cal: { name: "슬롯 2", owned: 4 },
+      Lee: { name: "슬롯 3", owned: 9 },
+      supremum: { name: "슬롯 4", owned: 3 },
+    },
+    dir: DIR_BEFORE,
+    title: "Hal 삽입",
+    text: "Hal 은 Gus 와 Ivy 사이에 링크로 끼워진다. 이 구간을 맡은 Lee 의 n_owned 를 1 올리면 9 가 되어, 최대값 8 을 넘는다.",
+  },
+  {
+    inserted: "Hal",
+    slots: {
+      Cal: { name: "슬롯 2", owned: 4 },
+      Lee: { name: "슬롯 4", owned: 9 },
+      supremum: { name: "슬롯 5", owned: 3 },
+    },
+    dir: [
+      { name: "슬롯 5", target: "supremum", state: "moved" },
+      { name: "슬롯 4", target: "Lee", state: "moved" },
+      { name: "슬롯 3", target: "", state: "empty" },
+      ...DIR_TAIL,
+    ],
+    title: "슬롯 배열에 자리 만들기",
+    text: "새 슬롯은 슬롯 2 와 3 사이에 들어가야 키 순서가 유지된다. 슬롯 3 부터 마지막 슬롯까지를 2 byte 씩 Free Space 쪽으로 밀어 빈 칸을 만든다. Lee 를 가리키던 슬롯은 4, supremum 을 가리키던 슬롯은 5 가 된다.",
+  },
+  {
+    inserted: "Hal",
+    slots: {
+      Cal: { name: "슬롯 2", owned: 4 },
+      Gus: { name: "슬롯 3", owned: 4, fresh: true },
+      Lee: { name: "슬롯 4", owned: 5 },
+      supremum: { name: "슬롯 5", owned: 3 },
+    },
+    dir: [
+      { name: "슬롯 5", target: "supremum" },
+      { name: "슬롯 4", target: "Lee" },
+      { name: "슬롯 3", target: "Gus", state: "fresh" },
+      ...DIR_TAIL,
+    ],
+    title: "새 슬롯 쓰기",
+    text: "Dan 부터 세어 4번째인 Gus 의 위치를 빈 칸에 써서 새 슬롯 3 으로 만든다. Gus 의 n_owned 는 4, Lee 의 n_owned 는 5 가 되고 PAGE_N_DIR_SLOTS 가 1 늘어난다. 레코드는 하나도 옮기지 않았다.",
+  },
+];
+
+/** Steps through one slot split: the record row on top, the Page Directory array below it. */
+function SlotSplitDemo() {
+  const [index, setIndex] = useState(0);
+  const step = SPLIT_STEPS[index]!;
+  const keys = SPLIT_KEYS.filter((key) => key !== step.missing);
+
+  return (
+    <div className="seek">
+      <div className="split">
+        <div className="split__row">
+          <span className="split__label">키 순서</span>
+          <div
+            className="split__grid"
+            // Name cells, then a wider last column for supremum.
+            style={{
+              gridTemplateColumns: `repeat(${keys.length - 1}, 36px) auto`,
+            }}
+          >
+            {keys.map((key, position) => {
+              const column = position + 1;
+              const slot = step.slots[key];
+              const over = slot !== undefined && slot.owned > 8;
+              return (
+                <Fragment key={key}>
+                  {slot && (
+                    <>
+                      <span
+                        className={`seek__slot ${slot.fresh ? "seek__slot--probe" : ""}`}
+                        style={{ gridColumn: column, gridRow: 1 }}
+                      >
+                        {slot.name}
+                      </span>
+                      <i
+                        className={`seek__pointer ${slot.fresh ? "seek__pointer--probe" : ""}`}
+                        style={{ gridColumn: column, gridRow: 2 }}
+                      >
+                        ↓
+                      </i>
+                    </>
+                  )}
+                  <span
+                    className={`seek__rec ${key === step.inserted ? "seek__rec--walk" : ""} ${
+                      key === "…" ? "split__more" : ""
+                    }`}
+                    style={{ gridColumn: column, gridRow: 3 }}
+                  >
+                    {key}
+                  </span>
+                  {slot && (
+                    <em
+                      className={`split__owned ${over ? "split__owned--over" : ""}`}
+                      style={{ gridColumn: column, gridRow: 4 }}
+                    >
+                      n_owned {slot.owned}
+                    </em>
+                  )}
+                </Fragment>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="split__row">
+          <span className="split__label">Page Directory</span>
+          <div className="split__dir">
+            <em className="split__edge">← Free Space</em>
+            {step.dir.map((slot) => (
+              <span
+                key={slot.name}
+                className={`split__dirslot ${slot.state ? `split__dirslot--${slot.state}` : ""}`}
+              >
+                <b>{slot.name}</b>
+                <i>
+                  {slot.target
+                    ? `→ ${slot.target}`
+                    : slot.name === "…"
+                      ? ""
+                      : "빈 칸"}
+                </i>
+              </span>
+            ))}
+            <em className="split__edge">File Trailer →</em>
+          </div>
+        </div>
+      </div>
+
+      <div className="seek__panel">
+        <p className="seek__text seek__text--tall">
+          <b>
+            {index + 1}. {step.title}
+          </b>
+          {step.text}
+        </p>
+        <div className="seek__controls">
+          <button
+            type="button"
+            className="button"
+            disabled={index === 0}
+            onClick={() => setIndex(index - 1)}
+          >
+            ← 이전
+          </button>
+          <span className="seek__count">
+            {index + 1} / {SPLIT_STEPS.length}
+          </span>
+          {index < SPLIT_STEPS.length - 1 ? (
             <button
               type="button"
               className="button button--primary"

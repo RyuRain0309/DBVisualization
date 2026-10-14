@@ -130,3 +130,45 @@ export function Roles({ rows }: { rows: Array<[string, ReactNode]> }) {
     </dl>
   );
 }
+
+/** One field of a fixed layout: identifier, size, what it holds, and what reads it. */
+export type Field = [name: string, size: number | string, note: string, use?: string];
+
+/** A fixed layout as a table of fields, in the order they sit in storage. */
+export function Fields({
+  title,
+  size,
+  rows,
+  unit = 'byte',
+}: {
+  title: string;
+  size: string;
+  rows: Field[];
+  unit?: 'byte' | 'bit';
+}) {
+  return (
+    <div className="cmp">
+      <div className="cmp__panel">
+        <b>
+          {title}
+          <em>{size}</em>
+        </b>
+        <ul className="fieldrows">
+          {rows.map(([name, bytes, note, use]) => (
+            <li key={name}>
+              <div className="fieldrows__name">
+                <b>{name}</b>
+                {/* A string size carries its own unit, for layouts that mix bits and bytes. */}
+                <i>{typeof bytes === 'string' ? bytes : `${bytes} ${unit}`}</i>
+              </div>
+              <div className="fieldrows__body">
+                <p>{note}</p>
+                {use && <p className="fieldrows__use">{use}</p>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
