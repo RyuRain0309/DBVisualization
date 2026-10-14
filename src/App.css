@@ -31,7 +31,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+  font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
   font-size: 13px;
 }
 
@@ -3097,6 +3097,374 @@ body {
   font-style: normal;
   font-size: 10.5px;
   color: var(--text-dim);
+}
+
+/* One page shown twice: the order the links give, and the order the records physically sit in. */
+.order {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.order__panel {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+}
+
+.order__panel > b {
+  font-size: 12px;
+}
+
+.order__panel > b em {
+  margin-left: 8px;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
+
+.order__heap {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  /* Cells share borders so the records read as one solid block of the page. */
+  border-top: 1px solid var(--border-strong);
+  border-left: 1px solid var(--border-strong);
+}
+
+.order__heap .order__rec {
+  /* 3 x 38 plus the grid's top border = 115, the same as the chain's 3 x 29 plus two 14px turns. */
+  height: 38px;
+  line-height: 37px;
+  border-width: 0 1px 1px 0;
+  border-style: solid;
+  border-radius: 0;
+}
+
+/* Record, arrow, record, ... across; a thin row between record rows holds the turn arrow. */
+.order__chain {
+  display: grid;
+  grid-template-columns: 1fr 14px 1fr 14px 1fr 14px 1fr;
+  grid-template-rows: 29px 14px 29px 14px 29px;
+  align-items: center;
+}
+
+.order__arrow {
+  font-style: normal;
+  font-size: 12px;
+  line-height: 14px;
+  text-align: center;
+  color: var(--accent);
+}
+
+.order__rec {
+  box-sizing: border-box;
+  height: 29px;
+  line-height: 27px;
+  padding: 0 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--leaf);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.order__rec--bound {
+  background: var(--bg-raised);
+  color: var(--text-dim);
+}
+
+.order__rec.order__rec--active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Insert/delete demo: cells carry a state, and the right panel lists the two chains as chips. */
+.order__heap--states .order__rec {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.25;
+}
+
+.order__heap--states .order__rec em {
+  font-style: normal;
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.order__rec--empty {
+  background: none;
+}
+
+.order__rec--marked {
+  background: var(--bg-raised);
+  color: var(--danger);
+}
+
+.order__rec--marked span,
+.order__list .order__rec--marked {
+  text-decoration: line-through;
+}
+
+.order__rec--freed {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--bg-raised),
+    var(--bg-raised) 4px,
+    var(--bg-panel) 4px,
+    var(--bg-panel) 8px
+  );
+  color: var(--text-dim);
+}
+
+.order__rec--changed {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.order__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 0;
+}
+
+/* Room for two rows of 29px chips, so the list below does not jump when the chain wraps. */
+.order__list--two {
+  min-height: 63px;
+  align-content: flex-start;
+}
+
+.order__item {
+  display: flex;
+  align-items: center;
+}
+
+.order__item .order__arrow {
+  width: 16px;
+}
+
+.order__list .order__rec {
+  padding: 0 7px;
+}
+
+.order__rec--head {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.order__none {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+@media (max-width: 720px) {
+  .order {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* In-page lookup demo: slots sit above the last record of the group they point at. */
+.seek {
+  display: grid;
+  gap: 14px;
+}
+
+.seek__scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+/* One row of records; a slot sits in the column of the single record it points at. */
+.seek__row {
+  display: grid;
+  grid-auto-columns: auto;
+  gap: 3px;
+  justify-items: center;
+  align-items: center;
+  width: max-content;
+  margin: 0 auto;
+}
+
+.seek__dim {
+  opacity: 0.35;
+}
+
+.seek__bound {
+  font-style: normal;
+  font-size: 10px;
+  white-space: nowrap;
+  color: var(--accent);
+}
+
+.seek__slot {
+  padding: 2px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-panel);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.seek__slot--bound {
+  border-color: var(--accent);
+}
+
+.seek__slot--probe {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.seek__pointer {
+  font-style: normal;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-dim);
+}
+
+.seek__pointer--probe {
+  color: var(--accent);
+}
+
+.seek__rec {
+  box-sizing: border-box;
+  min-width: 26px;
+  justify-self: stretch;
+  padding: 4px 3px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-panel);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: center;
+}
+
+.seek__rec--probe,
+.seek__rec--walk {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.seek__rec--found {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.seek__panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.seek__text {
+  flex: 1 1 320px;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+/* Title plus three lines, the longest step text, so the controls stay put between steps. */
+.seek__text--tall {
+  min-height: calc(1.55em * 4);
+}
+
+.seek__text b {
+  display: block;
+}
+
+.seek__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.seek__count {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* A fixed layout, one field per row: identifier on the left, meaning and use on the right. */
+.fieldrows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.fieldrows li {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 16px;
+  padding: 8px 10px;
+  border-radius: 5px;
+  background: var(--bg-panel);
+}
+
+.fieldrows__name {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  min-width: 0;
+}
+
+.fieldrows__name b {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.fieldrows__name i {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent);
+}
+
+.fieldrows__body {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+.fieldrows__body p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.fieldrows__body .fieldrows__use {
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+@media (max-width: 720px) {
+  .fieldrows li {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
 }
 
 /* What differs between the two records, once their shape has been shown. */
