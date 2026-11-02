@@ -14,10 +14,12 @@ export interface Chapter {
   title: string;
   blurb: string;
   Body: ComponentType;
+  /** Still being written: left out of the nav and unreachable by URL until it is ready. */
+  draft?: boolean;
 }
 
 /** Reading order: what the pieces are, then where a row physically ends up, then how it is found. */
-export const CHAPTERS: Chapter[] = [
+const ALL_CHAPTERS: Chapter[] = [
   {
     id: 'components',
     title: 'InnoDB 구성요소',
@@ -59,17 +61,22 @@ export const CHAPTERS: Chapter[] = [
     title: '인덱스 구조',
     blurb: '클러스터드 · 세컨더리 인덱스와 탐색 경로',
     Body: IndexChapter,
+    draft: true,
   },
   {
     id: 'optimizer',
     title: '질의 실행 경로',
     blurb: '파서 · 옵티마이저 · 실행기가 SQL 을 엔진 호출로 바꾸는 과정',
     Body: OptimizerChapter,
+    draft: true,
   },
   {
     id: 'mvcc',
     title: 'MVCC 동작 방식',
     blurb: 'read view 와 버전 체인으로 락 없이 읽기',
     Body: MvccChapter,
+    draft: true,
   },
 ];
+
+export const CHAPTERS = ALL_CHAPTERS.filter((chapter) => !chapter.draft);
