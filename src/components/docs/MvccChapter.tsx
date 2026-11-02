@@ -31,7 +31,7 @@ export function MvccChapter() {
             [
               'DB_TRX_ID',
               <>
-                행에 붙은 숨은 컬럼. <b>이 버전을 만든 트랜잭션 id</b> 다. 읽는 쪽이 판단하는 기준값.
+                행에 붙은 Hidden Column. <b>이 버전을 만든 트랜잭션 id</b> 다. 읽는 쪽이 판단하는 기준값.
               </>,
             ],
             [

@@ -365,7 +365,7 @@ function executeCreateTable(ctx: ExecutionContext, statement: Statement & { kind
     explanation:
       table.primaryKey.kind === 'declared'
         ? `테이블 ${table.name} 생성. PRIMARY KEY(${table.primaryKey.columns.join(', ')}) 로 클러스터드 인덱스가 만들어지고, 세컨더리 인덱스 ${table.secondaryIndexes.length}개가 별도 B+tree 로 생성된다.`
-        : `테이블 ${table.name} 생성. PRIMARY KEY 를 지정하지 않아 InnoDB 가 숨은 ${HIDDEN_ROW_ID} 컬럼을 만들어 그 위에 클러스터드 인덱스를 구성한다.`,
+        : `테이블 ${table.name} 생성. PRIMARY KEY 를 지정하지 않아 InnoDB 가 ${HIDDEN_ROW_ID} 라는 Hidden Column 을 만들어 그 위에 클러스터드 인덱스를 구성한다.`,
   });
 }
 

@@ -53,7 +53,7 @@ export function BTreeCanvas({ index, highlight, locks }: Props) {
           </div>
           <div>
             <dt>리프에 담긴 것</dt>
-            <dd>{clustered ? '행 전체 + 숨은 시스템 컬럼' : '인덱스 키 + PK'}</dd>
+            <dd>{clustered ? '행 전체 + Hidden Column' : '인덱스 키 + PK'}</dd>
           </div>
         </dl>
       </header>

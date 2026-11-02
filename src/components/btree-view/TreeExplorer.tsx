@@ -144,7 +144,7 @@ function TableSummary({ table }: { table: TableSnapshot }) {
       </div>
       <p className="table-summary__keys">
         PRIMARY KEY ({pk.join(', ')})
-        {table.table.primaryKey.kind === 'hidden-row-id' && ' — 선언한 PK 가 없어 InnoDB 가 숨은 컬럼으로 만든 것'}
+        {table.table.primaryKey.kind === 'hidden-row-id' && ' — 선언한 PK 가 없어 InnoDB 가 Hidden Column 으로 만든 것'}
         {table.table.secondaryIndexes.length > 0 &&
           ` · ${table.table.secondaryIndexes
             .map((index) => `KEY ${index.name} (${index.columns.join(', ')})`)

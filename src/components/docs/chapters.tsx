@@ -51,7 +51,7 @@ export const CHAPTERS: Chapter[] = [
   {
     id: 'record',
     title: '레코드 내부 구조',
-    blurb: '레코드 필드 구성과 숨은 컬럼',
+    blurb: '레코드 필드 구성과 Hidden Column',
     Body: RecordChapter,
   },
   {
