@@ -4198,3 +4198,121 @@ body {
     text-align: left;
   }
 }
+
+/* Variable-length list demo: bytes left of the origin are read one at a time, leftward. */
+.varlen {
+  display: grid;
+  gap: 14px;
+}
+
+.varlen__scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.varlen__row {
+  display: grid;
+  grid-template-columns: repeat(5, auto) 22px repeat(5, auto);
+  gap: 5px 3px;
+  align-items: center;
+  width: max-content;
+  margin: 0 auto;
+}
+
+.varlen__group {
+  grid-row: 1;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--border-strong);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.varlen__cell {
+  min-width: 44px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-panel);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.varlen__cell--read {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.varlen__cell--now {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.varlen__owner {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.varlen__owner--known {
+  color: var(--text);
+}
+
+.varlen__origin {
+  grid-column: 6;
+  grid-row: 1 / 4;
+  justify-self: center;
+  align-self: stretch;
+  border-left: 2px dashed var(--accent);
+}
+
+.varlen__dir {
+  grid-row: 4;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.varlen__dir--origin {
+  grid-column: 6;
+  justify-self: center;
+  color: var(--accent);
+  font-family: var(--mono);
+}
+
+.varlen__schema {
+  margin: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+/* Where slots and next_record point: between the record header and the first value. */
+.rec__origin {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0;
+  padding: 3px 10px;
+  border-top: 2px dashed var(--accent);
+  font-size: 11.5px;
+  color: var(--accent);
+}
+
+.rec__origin b {
+  font-family: var(--mono);
+  font-size: 11px;
+}
