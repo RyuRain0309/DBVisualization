@@ -10,53 +10,59 @@ export interface Route {
   anchor?: string | null;
 }
 
+/** Where the app is mounted, without the trailing slash: '' locally at the root, '/DBVisualization' on GitHub Pages. */
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+
 /**
- * Hash routing rather than the history API: the app is served as static files, and a hash URL
- * survives a reload without needing the host to rewrite unknown paths back to index.html.
+ * Path routing with the history API. The host serves index.html for unknown paths (GitHub Pages
+ * does it through a copy named 404.html), so a reload on any of these lands back in the app.
  *
- *   #/            welcome
- *   #/docs        docs, first chapter
- *   #/docs/page   that chapter
- *   #/docs/page/x that chapter, scrolled to the element with id x
- *   #/app         workspace, default tab
- *   #/app/locks   that tab
+ *   /            welcome
+ *   /docs        docs, first chapter
+ *   /docs/page   that chapter
+ *   /docs/page/x that chapter, scrolled to the element with id x
+ *   /app         workspace, default tab
+ *   /app/locks   that tab
+ *
+ * Every path is relative to BASE.
  */
-export function parseHash(hash: string): Route {
-  const [view, param, anchor] = hash.replace(/^#\/?/, '').split('/');
+export function parsePath(pathname: string): Route {
+  const local = pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname;
+  const [view, param, anchor] = local.replace(/^\/+/, '').split('/');
   if (view === 'docs') return { view, param: param || null, anchor: anchor || null };
   if (view === 'app') return { view, param: param || null };
   return { view: 'welcome', param: null };
 }
 
-export function formatHash(route: Route): string {
-  if (route.view === 'welcome') return '#/';
-  if (!route.param) return `#/${route.view}`;
-  return route.anchor ? `#/${route.view}/${route.param}/${route.anchor}` : `#/${route.view}/${route.param}`;
+export function formatPath(route: Route): string {
+  if (route.view === 'welcome') return `${BASE}/`;
+  if (!route.param) return `${BASE}/${route.view}`;
+  return route.anchor
+    ? `${BASE}/${route.view}/${route.param}/${route.anchor}`
+    : `${BASE}/${route.view}/${route.param}`;
 }
 
 function subscribe(onChange: () => void) {
-  window.addEventListener('hashchange', onChange);
-  return () => window.removeEventListener('hashchange', onChange);
+  window.addEventListener('popstate', onChange);
+  return () => window.removeEventListener('popstate', onChange);
 }
 
-function currentHash() {
-  return window.location.hash;
+function currentPath() {
+  return window.location.pathname;
 }
 
 export function useRoute(): [Route, (route: Route, replace?: boolean) => void] {
-  const hash = useSyncExternalStore(subscribe, currentHash, () => '');
-  const route = parseHash(hash);
+  const pathname = useSyncExternalStore(subscribe, currentPath, () => '');
+  const route = parsePath(pathname);
 
   const navigate = useCallback((next: Route, replace = false) => {
-    const target = formatHash(next);
-    if (window.location.hash === target) return;
-    if (replace) {
-      // Used to normalise an unknown id, where a new history entry would be noise.
-      window.history.replaceState(null, '', target);
-      window.dispatchEvent(new HashChangeEvent('hashchange'));
-      return;
-    }
-    window.location.hash = target;
+    const target = formatPath(next);
+    if (window.location.pathname === target) return;
+    // replace is used to normalise an unknown id, where a new history entry would be noise.
+    if (replace) window.history.replaceState(null, '', target);
+    else window.history.pushState(null, '', target);
+    // pushState and replaceState do not fire popstate on their own.
+    window.dispatchEvent(new PopStateEvent('popstate'));
   }, []);
 
   return [route, navigate];

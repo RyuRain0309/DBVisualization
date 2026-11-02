@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { formatHash } from '../../router';
+import { formatPath, useRoute } from '../../router';
 
 /** One numbered chapter body block: a heading plus prose. */
 /** Which side of the architecture diagram a component sits on; 'both' shows one badge each. */
@@ -110,8 +110,19 @@ export function Sub({ title, id, children }: { title: string; id?: string; child
  * there; without it the link opens the chapter at the top.
  */
 export function DocLink({ chapter, anchor, children }: { chapter: string; anchor?: string; children: ReactNode }) {
+  const [, navigate] = useRoute();
+  const route = { view: 'docs', param: chapter, anchor } as const;
   return (
-    <a className="doc-link" href={formatHash({ view: 'docs', param: chapter, anchor })}>
+    <a
+      className="doc-link"
+      href={formatPath(route)}
+      onClick={(event) => {
+        // A plain click stays in the app; modified clicks (new tab, etc.) keep the browser default.
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        navigate(route);
+      }}
+    >
       {children}
     </a>
   );
