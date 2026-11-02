@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { AppMark } from '../onboarding/AppMark';
 import { CHAPTERS } from './chapters';
 import { useRoute } from '../../router';
+import { SIMULATOR_ENABLED } from '../../features';
 
 /**
  * The reader shows one chapter at a time rather than one long scroll: each chapter is a whole
@@ -41,9 +42,13 @@ export function DocsView() {
           <strong>문서</strong>
           <span>InnoDB 가 데이터를 어디에 어떻게 두는지</span>
         </div>
-        <button type="button" className="button button--primary" onClick={() => navigate({ view: 'app', param: null })}>
-          시작하기
-        </button>
+        {SIMULATOR_ENABLED ? (
+          <button type="button" className="button button--primary" onClick={() => navigate({ view: 'app', param: null })}>
+            시작하기
+          </button>
+        ) : (
+          <span />
+        )}
       </header>
 
       <div className="docs__body">

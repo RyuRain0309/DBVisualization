@@ -1,5 +1,6 @@
 import { AppMark } from './AppMark';
 import { useRoute } from '../../router';
+import { SIMULATOR_ENABLED } from '../../features';
 
 const KEYWORDS = ['B+tree', '레코드 · 갭 락', 'redo / undo', 'MVCC'];
 
@@ -22,10 +23,16 @@ export function Welcome() {
         </ul>
 
         <div className="welcome__actions">
-          <button type="button" className="button button--primary button--large" onClick={() => navigate({ view: 'app', param: null })}>
-            시작하기
-          </button>
-          <button type="button" className="button button--large" onClick={() => navigate({ view: 'docs', param: null })}>
+          {SIMULATOR_ENABLED && (
+            <button type="button" className="button button--primary button--large" onClick={() => navigate({ view: 'app', param: null })}>
+              시작하기
+            </button>
+          )}
+          <button
+            type="button"
+            className={`button button--large ${SIMULATOR_ENABLED ? '' : 'button--primary'}`}
+            onClick={() => navigate({ view: 'docs', param: null })}
+          >
             문서
           </button>
         </div>

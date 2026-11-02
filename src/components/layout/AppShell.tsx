@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ArchitectureView } from '../architecture/ArchitectureView';
 import { DocsView } from '../docs/DocsView';
 import { BTreeCanvas } from '../btree-view/BTreeCanvas';
@@ -17,6 +17,7 @@ import { StepControls } from '../sql-console/StepControls';
 import { SessionOverview } from '../session/SessionOverview';
 import { useEngineStore } from '../../store/engineStore';
 import { useRoute } from '../../router';
+import { SIMULATOR_ENABLED } from '../../features';
 import {
   WorkspaceTabs,
   tabDefinitions,
@@ -51,8 +52,14 @@ export function AppShell() {
   const currentEvent = steps[cursor]?.event ?? null;
   const highlight = highlightOf(currentEvent);
 
+  const simulatorBlocked = route.view === 'app' && !SIMULATOR_ENABLED;
+  useEffect(() => {
+    // An /app URL from before the simulator was hidden goes back to the start page.
+    if (simulatorBlocked) navigate({ view: 'welcome', param: null }, true);
+  }, [simulatorBlocked, navigate]);
+
   if (route.view === 'docs') return <DocsView />;
-  if (route.view === 'welcome') return <Welcome />;
+  if (route.view === 'welcome' || simulatorBlocked) return <Welcome />;
 
   const waitingSessions = snapshot.sessions.filter((session) => session.waitingForTxId !== null);
   const openTransactions = snapshot.sessions.filter((session) => session.transaction !== null);
