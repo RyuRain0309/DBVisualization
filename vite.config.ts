@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  // Served from https://ryurain0309.github.io/DBVisualization/ on GitHub Pages.
+  base: '/DBVisualization/',
   plugins: [react()],
   resolve: {
     alias: {
