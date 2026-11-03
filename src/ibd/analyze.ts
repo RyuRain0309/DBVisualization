@@ -179,7 +179,8 @@ export async function analyze(
     source,
     pageSize,
     pageCount,
-    extentPages: pagesPerExtent(pageSize),
+    // Extent size follows innodb_page_size, also for compressed tables whose pages are smaller.
+    extentPages: pagesPerExtent(flags.logicalPageSize),
     flags,
     fsp: fsp!,
     unsupported,

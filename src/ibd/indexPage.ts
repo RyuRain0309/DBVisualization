@@ -22,9 +22,12 @@ export interface IndexPageHeader {
   nHeap: number;
   /** The top bit of PAGE_N_HEAP: COMPACT/DYNAMIC (true) or REDUNDANT (false) record format. */
   compact: boolean;
-  /** PAGE_FREE: first record in the chain of purged records whose space can be reused. 0 = none. */
+  /**
+   * PAGE_FREE: first record in the chain of records taken out of the key order whose space can be
+   * reused: purged deletes, and records moved to another page by a split. 0 = none.
+   */
   free: number;
-  /** PAGE_GARBAGE: bytes held by those purged records. */
+  /** PAGE_GARBAGE: bytes held by the records in that chain. */
   garbage: number;
   /** PAGE_LAST_INSERT: the record inserted last. 0 after a delete or reorganise. */
   lastInsert: number;
@@ -154,7 +157,7 @@ export function walkRecords(page: Uint8Array, header: IndexPageHeader): RecordCh
   return follow(page, PAGE_NEW_INFIMUM, PAGE_NEW_SUPREMUM, header.nHeap + 2);
 }
 
-/** Purged records whose space can be reused, from PAGE_FREE along next_record. */
+/** Records out of the key order whose space can be reused, from PAGE_FREE along next_record. */
 export function freeRecords(page: Uint8Array, header: IndexPageHeader): RecordChain {
   return follow(page, header.free, null, header.nHeap);
 }
@@ -172,7 +175,7 @@ export function directoryStart(pageSize: number, header: IndexPageHeader): numbe
   return pageSize - FIL_TRAILER_SIZE - header.nDirSlots * 2;
 }
 
-/** Share of an empty page's free space taken by live records (purged garbage not counted). */
+/** Share of an empty page's free space taken by live records (the PAGE_FREE chain not counted). */
 export function fillRatio(pageSize: number, header: IndexPageHeader): number {
   const used = header.heapTop - PAGE_NEW_SUPREMUM_END - header.garbage + header.nDirSlots * 2 - 4;
   return Math.max(0, Math.min(1, used / emptyPageFreeSpace(pageSize)));

@@ -161,7 +161,7 @@ describe('index page', () => {
     expect(owned.reduce((sum, record) => sum + record.nOwned, 0)).toBe(records.length);
   });
 
-  it('keeps the purged rows of a leaf in the PAGE_FREE chain', async () => {
+  it('keeps records taken out of a leaf in the PAGE_FREE chain', async () => {
     const leafNo = space.pages.find(
       (page) => page.indexId === space.indexes[1]!.id && page.level === 0 && space.allocation[page.pageNo] === 'used',
     )!.pageNo;
@@ -187,6 +187,8 @@ describe('ROW_FORMAT=COMPRESSED', () => {
     expect(zip.flags.zipSsize).toBe(4);
     expect(zip.pageSize).toBe(8192);
     expect(zip.flags.logicalPageSize).toBe(16384);
+    // An extent follows innodb_page_size: 64 pages, here of 8KB each.
+    expect(zip.extentPages).toBe(64);
     expect(zip.unsupported).toContain('compressed');
     expect(zip.pages[0]!.type).toBe(8);
     expect(zip.pages.every((page) => !page.misplaced)).toBe(true);
