@@ -35,6 +35,9 @@ export function Welcome() {
           >
             문서
           </button>
+          <button type="button" className="button button--large" onClick={() => navigate({ view: 'ibd', param: null })}>
+            파일 분석
+          </button>
         </div>
 
         <p className="welcome__foot">InnoDB 기반 시각화 시뮬레이터</p>

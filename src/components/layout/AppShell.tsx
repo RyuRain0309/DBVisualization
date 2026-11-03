@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { ArchitectureView } from '../architecture/ArchitectureView';
 import { DocsView } from '../docs/DocsView';
+import { IbdView } from '../ibd/IbdView';
 import { BTreeCanvas } from '../btree-view/BTreeCanvas';
 import { TreeExplorer } from '../btree-view/TreeExplorer';
 import { highlightOf, type Highlight } from '../btree-view/highlight';
@@ -59,6 +60,7 @@ export function AppShell() {
   }, [simulatorBlocked, navigate]);
 
   if (route.view === 'docs') return <DocsView />;
+  if (route.view === 'ibd') return <IbdView />;
   if (route.view === 'welcome' || simulatorBlocked) return <Welcome />;
 
   const waitingSessions = snapshot.sessions.filter((session) => session.waitingForTxId !== null);

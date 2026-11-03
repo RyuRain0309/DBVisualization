@@ -1,10 +1,10 @@
 import { useCallback, useSyncExternalStore } from 'react';
 
-export type View = 'welcome' | 'docs' | 'app';
+export type View = 'welcome' | 'docs' | 'app' | 'ibd';
 
 export interface Route {
   view: View;
-  /** Chapter id for docs, workspace tab for the app; null means "whatever the default is". */
+  /** Chapter id for docs, workspace tab for the app, unused for ibd; null means "whatever the default is". */
   param: string | null;
   /** Element id inside a docs chapter to scroll to; absent means the top of the chapter. */
   anchor?: string | null;
@@ -23,6 +23,7 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
  *   /docs/page/x that chapter, scrolled to the element with id x
  *   /app         workspace, default tab
  *   /app/locks   that tab
+ *   /ibd         .ibd file viewer
  *
  * Every path is relative to BASE.
  */
@@ -31,6 +32,7 @@ export function parsePath(pathname: string): Route {
   const [view, param, anchor] = local.replace(/^\/+/, '').split('/');
   if (view === 'docs') return { view, param: param || null, anchor: anchor || null };
   if (view === 'app') return { view, param: param || null };
+  if (view === 'ibd') return { view, param: null };
   return { view: 'welcome', param: null };
 }
 
